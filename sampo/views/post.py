@@ -1,8 +1,8 @@
-
 ## simple example of typical rhombus viewer
 
 from sampo.views import *
 from rhombus.lib.utils import random_string
+
 
 class PostViewer(object):
 
@@ -11,52 +11,47 @@ class PostViewer(object):
         self.dbh = get_dbhandler()
         self.post = None
 
-    def index( self ):
+    def index(self):
 
         content = div()
-        self.post = self.dbh.get_post( int(self.request.matchdict.get('id', 0)))
+        self.post = self.dbh.get_post(int(self.request.matchdict.get('id', 0)))
 
-        content.add( h2(self.post.title) )
-        content.add( div(self.post.content) )
+        content.add(h2(self.post.title))
+        content.add(div(self.post.content))
 
         return render_to_response('sampo:templates/generic_page.mako',
-                    {
-                        'html': content,
-                    }, request = self.request
-        )
+                                  {
+                                      'html': content,
+                                  }, request=self.request
+                                  )
 
-    @m_roles( PUBLIC )
-    def edit( self ):
+    @m_roles(PUBLIC)
+    def edit(self):
         pass
 
-
-    @m_roles( PUBLIC )
-    def add( self ):
+    @m_roles(PUBLIC)
+    def add(self):
         req = self.request
         post = self.dbh.Post()
 
         if req.method == 'POST':
-
-            post.update( self.parse_form(req.params) )
+            post.update(self.parse_form(req.params))
             self.dbh.session().add(post)
 
-            return HTTPFound(location = '/')
+            return HTTPFound(location='/')
 
         content = div()
-        content.add( self.edit_form(post))
+        content.add(self.edit_form(post))
 
         return render_to_response('sampo:templates/generic_page.mako',
-                    {
-                        'html': content,
-                    }, request = req
-        )
+                                  {
+                                      'html': content,
+                                  }, request=req
+                                  )
 
-
-    @m_roles( PUBLIC )
+    @m_roles(PUBLIC)
     def action(self):
         pass
-
-
 
     def edit_form(self, post, create=False):
         """ return HTML form populated by post's data """
@@ -64,22 +59,21 @@ class PostViewer(object):
         dbh = self.dbh
         request = self.request
 
-        eform = form( name='sampo/post', method=POST )
+        eform = form(name='sampo/post', method=POST)
         eform.add(
 
-            self.hidden_fields( self.request, post ),
+            self.hidden_fields(self.request, post),
 
             fieldset(
                 multi_inputs(name='sampo-group-user-type')[
-                input_select('sampo-group_id', 'Group', value=post.group_id, offset=1, size=2,
-                    options = [ (g.id, g.name) for g in dbh.get_group() ]),
-                input_select('sampo-user_id', 'User', value=post.user_id, offset=1, size=2,
-                    options = [ (u.id, u.login) for u in dbh.get_user(request.user.id).group_users() ]),
-                input_select_ek('sampo-posttype_id', 'Post type', value=post.posttype_id,
-                    parent_ek = dbh.get_ekey('@POSTTYPE'), offset=1, size=2),
+                    input_select('sampo-group_id', 'Group', value=post.group_id, offset=1, size=2,
+                                 options=[(g.id, g.name) for g in dbh.get_group()]),
+                    input_select('sampo-user_id', 'User', value=post.user_id, offset=1, size=2,
+                                 options=[(u.id, u.login) for u in dbh.get_user(request.user.id).group_users()]),
+                    input_select_ek('sampo-posttype_id', 'Post type', value=post.posttype_id,
+                                    parent_ek=dbh.get_ekey('@POSTTYPE'), offset=1, size=2),
                 ],
                 name='sampo.post-header'
-
             ),
 
             fieldset(
@@ -92,15 +86,13 @@ class PostViewer(object):
                 custom_submit_bar(('Save', 'save')).set_hide(False).set_offset(2)
             ),
         )
-
         return eform
-
 
     def hidden_fields(self, request, post=None):
         """ return hidden fields for validating a form """
 
         post = post or self.post
-        return fieldset (
+        return fieldset(
             # stamp is used to check whether a post has been updated since the time it was being fetched
             input_hidden(name='sampo-stamp', value='%15f' % post.stamp.timestamp() if post.stamp else -1),
 
@@ -109,7 +101,6 @@ class PostViewer(object):
 
             name="sampo.post-hidden"
         )
-
 
     def parse_form(self, f, d=None):
 
@@ -132,34 +123,30 @@ class PostViewer(object):
         return d
 
 
-
-
-
-def list_posts( request ):
-
+def list_posts(request):
     dbh = get_dbhandler()
 
     posts = dbh.get_posts()
 
     content = div()
     content.add(
-                a('+ New post', class_='btn btn-success',
-                    href=request.route_url('post-add')
-                ),
-            )
+        a('+ New post', class_='btn btn-success',
+          href=request.route_url('post-add')
+          ),
+    )
 
     if len(posts) == 0:
-        content.add( div("No posts!"))
+        content.add(div("No posts!"))
         return content
 
     body = tbody()
 
-    #raise RuntimeError
+    # raise RuntimeError
 
     for post in posts:
         body.add(
             tr(
-                td( a(post.title, href=request.route_url('post-view', id=post.id)) ),
+                td(a(post.title, href=request.route_url('post-view', id=post.id))),
             )
         )
 
@@ -171,9 +158,9 @@ def list_posts( request ):
         )
     )
 
-    table_posts.add( body )
+    table_posts.add(body)
 
-    content.add( table_posts)
+    content.add(table_posts)
     return content
 
 

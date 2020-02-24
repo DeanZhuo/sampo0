@@ -62,7 +62,7 @@ class Tag(Base):
         assert type(node_id) == int
         for id in tag_ids:
             if type(id) != int:
-                raise RuntimeError('FATAL ERR: tag_ids must contain ony integers')
+                raise RuntimeError('FATAL ERR: tag_ids must contain only integers')
 
         # check user_id first
         if not user_id:
