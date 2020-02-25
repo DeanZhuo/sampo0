@@ -1,14 +1,16 @@
-from rhombus.models.ek import *
 from rhombus.models.core import *
 from rhombus.models.user import User, Group
 from sampo.models import search_user
 from sqlalchemy.sql.expression import func
 import math
 
+# TODO: setter getter handler
+
 
 class Study(Base):
     """
     class for study
+    research or case for units and labs
     """
 
     __tablename__ = 'studies'
@@ -28,13 +30,14 @@ class Study(Base):
 
         tUuid = UUID.new()
         tGroup = Group.search(group, dbsession)
-        tCreator = User.get(creator, dbsession)
+        tCreator = search_user(dbsession, creator)
         study = Study(uuid=tUuid, group_id=tGroup, study_name=name, study_number=num.upper(), creator_id=tCreator)
         dbsession.add(study)
 
 
     def update(self, obj):
         """update from dictionary"""
+
         if isinstance(obj, dict):
             if 'group_id' in obj:
                 self.group_id = obj['group_id']
@@ -53,17 +56,19 @@ class Study(Base):
     @staticmethod
     def search(stdname, dbsession):
         """search study, id or name"""
+
         if type(stdname) == int:
             pass
             # TODO: setter getter
-        q = Study.query(dbsession).filter(Study.study_name == stdname).first()
-        if q: return q
+        qResult = Study.query(dbsession).filter(Study.study_name == stdname).first()
+        if qResult: return qResult
         return None
 
 
 class Subject(Base):
     """
     class for study's subjects
+    people with samples to take
     """
 
     __tablename__ = 'subjects'
@@ -82,17 +87,17 @@ class Subject(Base):
     def getLastSub(self, dbsession, study, loc, year):
         """get the last number from a study"""
 
-        if checkYear(year) is not True:
+        if checkYear(year) is False:
             RuntimeError('FATAL ERR: year not valid! 1899 < year < 2999, 4 digits format!')
 
-        tsty = Study.search(study, dbsession)
-        tloc = Location.search(loc, dbsession)
+        tStu = Study.search(study, dbsession)
+        tLoc = Location.search(loc, dbsession)
 
-        q = Subject.query(func.max(Subject.subject_number)).\
-            filter(Subject.study_id == tsty).filter(Subject.location_id == tloc).\
+        qResult = Subject.query(func.max(Subject.subject_number)).\
+            filter(Subject.study_id == tStu).filter(Subject.location_id == tLoc).\
             filter(Subject.year == year).first()
 
-        if q: return q
+        if qResult: return qResult
         return None
 
 
@@ -107,19 +112,19 @@ class Subject(Base):
     def add(self, dbsession, count, study, loc, year, creator):
         """add batch subjects"""
 
-        tstu = Study.search(study, dbsession)
-        tloc = Location.search(loc, dbsession)
-        tcrt = search_user(dbsession, creator)
+        tStu = Study.search(study, dbsession)
+        tLoc = Location.search(loc, dbsession)
+        tCrt = search_user(dbsession, creator)
 
-        sub = Subject.getLastSub(self,dbsession, study, loc, year)
+        sub = self.getLastSub(dbsession, study, loc, year)
         if sub is None:
             maxNum = 0
         else:
             maxNum = sub.subject_number
 
         for inc in range(count):
-            tnum = maxNum + count + 1
-            Subject.addOne(self, dbsession, tnum, tstu, tloc, year, tcrt)
+            tNum = maxNum + count + 1
+            self.addOne(dbsession, tNum, tStu, tLoc, year, tCrt)
 
 
     def update(self, obj):
@@ -154,7 +159,8 @@ def checkYear(year):
 
 class Location(Base):
     """
-    study locations, every study got many different locations
+    study location
+    every study could happen in different locations
     """
 
     __tablename__ = 'locations'
@@ -173,9 +179,10 @@ class Location(Base):
     @staticmethod
     def search(locnm, dbsession):
         """search location by id or name"""
+
         if type(locnm) == int:
             pass
             # TODO: setter getter
-        q = Location.query(dbsession).filter(Location.name == locnm).first()
-        if q: return q
+        qResult = Location.query(dbsession).filter(Location.name == locnm).first()
+        if qResult: return qResult
         return None

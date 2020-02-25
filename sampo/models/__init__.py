@@ -4,10 +4,10 @@ from rhombus.models.ek import *
 from rhombus.models.user import *
 
 def search_user(dbsession, user):
-    """get user id by name or id"""
+    """get user id by username or id"""
     if type(user) == int:
-        tuser = User.get(user)
+        tUser = User.get(user)
     else:
-        tuser = User.search(user, session=dbsession)
+        tUser = User.search(user, session=dbsession)
 
-    return tuser
+    return tUser

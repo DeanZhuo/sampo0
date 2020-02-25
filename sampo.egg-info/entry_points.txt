@@ -1,0 +1,6 @@
+      [paste.app_factory]
+      main = sampo:main
+      [console_scripts]
+      sampo-run = sampo.scripts.run:main
+      sampo-shell = sampo.scripts.shell:main
+      
