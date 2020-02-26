@@ -1,9 +1,10 @@
 from .sample import *
 
-# TODO: change last_editor_id to lastuser_id from BaseMixIn
-# TODO: setter getter handler, update, search, add, bulk add, batch add
+# TODO: setter getter handler, bulk add
+# TODO: shelf = level, add isFull to rack database
 
-class Fridge(Base, BaseMixIn):
+
+class Fridge(Base):
     """
     class for fridge object
     storage for specimen and extraction
@@ -11,6 +12,7 @@ class Fridge(Base, BaseMixIn):
 
     __tablename__ = 'fridges'
 
+    id = Column(types.Integer, Sequence('fridge_sec_id', optional=True), primary_key=True)
     uuid = Column(types.String, nullable=False)
 
     group_name = Column(types.String(32), ForeignKey('groups.name'), nullable=False)
@@ -38,6 +40,103 @@ class Fridge(Base, BaseMixIn):
     creator_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     creator = relationship(User, backref=backref('fridges'))
 
+    last_user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
+    last_user = relationship(User, backref=backref('fridges'))
+
+
+    def add(self, group, name, type, model, temp, loc, desc, full, shelf, rack, row, column,
+            creator, last_user):
+        """add a fridge"""
+
+        tUuid = UUID.new()
+        tGroup = Group.search(group, dbsession)
+        tGName = tGroup.name
+        tType = EK.getid(type, dbsession, grp='@FRIDGETYPE')
+        tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
+        tCrt = search_user(dbsession, creator)
+        tLUsr = search_user(dbsession, last_user)
+        fridge = Fridge(uuid=tUuid, group_name=tGName, fridge_name=name, fridge_type_id=tType,
+                        fridge_model=model, temperature=temp, fridge_location_id=tLoc, fridge_desc=desc,
+                        fridge_isFull=full, shelf=shelf, rack=rack, depth_row=row, depth_column=column,
+                        creator_id=tCrt, last_user_id=tLUsr)
+        dbsession.add(fridge)
+
+
+    def update(self, obj):
+        """update from dictionary"""
+
+        if isinstance(obj, dict):
+            if 'group_name' in obj:
+                self.group_name = obj['group_name']
+            if 'fridge_name' in obj:
+                self.fridge_name = obj['fridge_name']
+            if 'fridge_type_id' in obj:
+                self.fridge_type_id = obj['fridge_type_id']
+            if 'fridge_model' in obj:
+                self.fridge_model = obj['fridge_model']
+            if 'temperature' in obj:
+                self.temperature = obj['temperature']
+            if 'fridge_location_id' in obj:
+                self.fridge_location_id = obj['fridge_location_id']
+            if 'fridge_desc' in obj:
+                self.fridge_desc = obj['fridge_desc']
+            if 'fridge_isFull' in obj:
+                self.fridge_isFull = obj['fridge_isFull']
+            if 'shelf' in obj:
+                self.shelf = obj['shelf']
+            if 'rack' in obj:
+                self.rack = obj['rack']
+            if 'depth_row' in obj:
+                self.depth_row = obj['depth_row']
+            if 'depth_column' in obj:
+                self.depth_column = obj['depth_column']
+            if 'creator_id' in obj:
+                self.creator_id = obj['creator_id']
+            if 'last_user_id' in obj:
+                self.last_user_id = obj['last_user_id']
+
+            return self
+
+        raise NotImplementedError('ERR: updating object uses dictionary object')
+
+
+    @staticmethod
+    def search(dbsession, fridge):
+        """search by name"""
+
+        if type(fridge) is int:
+            pass
+            # TODO: setter getter
+
+        q = Fridge.query(dbsession).filter(Fridge.fridge_name == fridge).first()
+        if q: return q
+        return q
+
+
+    def edit(self, dbsession, temp, loc, desc):
+        """edit fidge"""
+
+        self.temperature = temp
+        tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
+        self.fridge_location_id = tLoc
+        self.fridge_desc = desc
+
+        pass
+        # TODO: update to database
+
+    @staticmethod
+    def checkFull(dbsession, fridge):
+        """check fridge status"""
+
+        tFridge = Fridge.search(dbsession, fridge)
+        lRacks = list()
+        # TODO: get list of racks by fridge id
+
+        for rack in lRacks:
+            if rack.rack_isFull is False:
+                return False
+        return True
+
 
 class Rack(Base):
     """
@@ -57,6 +156,65 @@ class Rack(Base):
     rack_post = Column(types.SmallInteger, nullable=False)
     num_row = Column(types.SmallInteger, nullable=False)
     num_column = Column(types.SmallInteger, nullable=False)
+    rack_isFull = Column(types.Boolean, nullable=False, server_default=False)
+
+
+    def add(self, dbsession, fridge, shelf, pos, row, col, full):
+        """add a rack"""
+
+        tUuid = UUID.new()
+        tFridge = Fridge.search(dbsession, fridge)
+        rack = Rack(uuid=tUuid, fridge_id=tFridge, shelf_num=shelf, rack_post=pos,
+                    num_row=row, num_column=col, rack_isFull=full)
+        dbsession.add(rack)
+
+
+    def update(self, obj):
+        """update from dictionary"""
+
+        if isinstance(obj, dict):
+            if 'fridge_id' in obj:
+                self.fridge_id = obj['fridge_id']
+            if 'shelf_num' in obj:
+                self.shelf_num = obj['shelf_num']
+            if 'rack_post' in obj:
+                self.rack_post = obj['rack_post']
+            if 'num_row' in obj:
+                self.num_row = obj['num_row']
+            if 'num_column' in obj:
+                self.num_column = obj['num_column']
+            if 'rack_isFull' in obj:
+                self.rack_isFull = obj['rack_isFull']
+
+            return self
+
+        raise NotImplementedError('ERR: updating object uses dictionary object')
+
+
+    def move(self, rack):
+        """move rack"""
+
+        tRack = rack    # TODO: getter
+
+        if self.num_row == tRack.shelf_num and self.num_column == tRack.num_column:
+            self.fridge_id, tRack.fridge_id = tRack.fridge_id, self.fridge_id
+            self.shelf_num, tRack.shelf_num = tRack.shelf_num, self.shelf_num
+            self.rack_post, tRack.rack_post = tRack.rack_post, self.rack_post
+
+            # TODO: update database
+
+    @staticmethod
+    def checkFull(dbsession, rack):
+        """check rack status"""
+
+        tRack = rack    # TODO: getter
+        lBox = list()
+        # TODO: get list of racks by fridge id
+
+        for box in lBox:
+            if box.box_isFull is False:
+                return False
+        return True
 
 
 class Box(Base):
@@ -77,7 +235,81 @@ class Box(Base):
 
     row = Column(types.SmallInteger, nullable=False)
     column = Column(types.SmallInteger, nullable=False)
-    box_isFull = Column(types.Boolean, nullable=False, server_default=False)
+    box_isFull = Column(types.Boolean, nullable=False, server_default=False)    # normal always False
+
+
+    def add(self, dbsession, name, type, rack, row, col, full):
+        """add a box"""
+
+        tUuid = UUID.new()
+        if type.lower() is 'grid' or type is 1:
+            tType = 1
+        else:
+            tType = 0
+        tRack = rack    # TODO: getter
+        box = Box(uuid=tUuid, box_name=name, box_type=tType, rack_id=tRack, row=row, column=col,
+                  box_isFull=full)
+        dbsession.add(box)
+
+
+    def update(self, obj):
+        """update from dictionary"""
+
+        if isinstance(obj, dict):
+            if 'box_name' in obj:
+                self.box_name = obj['box_name']
+            if 'box_type' in obj:
+                self.box_type = obj['box_type']
+            if 'rack_id' in obj:
+                self.rack_id = obj['rack_id']
+            if 'row' in obj:
+                self.row = obj['row']
+            if 'column' in obj:
+                self.column = obj['column']
+            if 'box_isFull' in obj:
+                self.box_isFull = obj['box_isFull']
+
+            return self
+
+        raise NotImplementedError('ERR: updating object uses dictionary object')
+
+
+    @staticmethod
+    def search(dbsession, boxname):
+        """serach by name"""
+
+        if type(boxname) is int:
+            pass
+            # TODO: setter getter
+
+        q = Box.query(dbsession).filter(Box.box_name == boxname).first()
+        if q: return q
+        return q
+
+
+    def move(self, dbsession, rack, row, col):
+        """move box"""
+
+        tRack = rack    # TODO: getter
+        self.rack_id = tRack
+        self.row = row
+        self.column = col
+
+        # TODO: update database
+
+
+    @staticmethod
+    def checkFull(dbsession, box):
+        """check box status"""
+
+        tBox = Box.search(dbsession, box)
+        lCells = list()
+        # TODO: get list of racks by fridge id
+
+        for cell in lCells:
+            if cell.cell_status is 'E':
+                return False
+        return True
 
 
 class BoxCell(Base):
@@ -100,3 +332,41 @@ class BoxCell(Base):
 
     cell_status = Column(types.String, nullable=False, server_default='E')
     # 'E'mpty, 'A'vailable, 'N'ot available
+
+
+    def add(self, dbsession, col, row, sample, box, stat):
+        """add a cell"""
+
+        tSam = Sample.search(dbsession, sample)
+        tBox = Box.search(dbsession, box)
+        cell = BoxCell(column=col, row=row, sample_id=tSam, box_id=tBox, cell_status=stat)
+        dbsession.add(cell)
+
+
+    def addBatch(self, dbsession, box):
+        """add cell for box"""
+
+        tBox = Box.search(dbsession, box)
+        for col in range(1, 9):
+            for row in range(1, 9):
+                self.add(dbsession, col, row, None, tBox,False)
+
+
+    def update(self, obj):
+        """update from dictionary"""
+
+        if isinstance(obj, dict):
+            if 'column' in obj:
+                self.column = obj['column']
+            if 'row' in obj:
+                self.row = obj['row']
+            if 'sample_id' in obj:
+                self.sample_id = obj['sample_id']
+            if 'box_id' in obj:
+                self.box_id = obj['box_id']
+            if 'cell_status' in obj:
+                self.cell_status = obj['cell_status']
+
+            return self
+
+        raise NotImplementedError('ERR: updating object uses dictionary object')

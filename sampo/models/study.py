@@ -4,7 +4,7 @@ from sampo.models import search_user
 from sqlalchemy.sql.expression import func
 import math
 
-# TODO: setter getter handler
+# TODO: setter getter handler, bulk insert
 
 
 class Study(Base):
@@ -84,7 +84,8 @@ class Subject(Base):
     study = relationship(Study, backref=backref('subjects'))
 
 
-    def getLastSub(self, dbsession, study, loc, year):
+    @staticmethod
+    def getLastSub(dbsession, study, loc, year):
         """get the last number from a study"""
 
         if checkYear(year) is False:
@@ -101,20 +102,20 @@ class Subject(Base):
         return None
 
 
-    def addOne(self, dbsession, num, study, loc, year, creator):
+    def add(self, dbsession, num, study, loc, year, creator):
         """add a subject"""
 
         tUuid = UUID.name()
-        sub = Subject(uuid=tUuid, study_id=study, subject_number=num, location_id=loc, year=year, creator_id=creator)
-        dbsession.add(sub)
-
-
-    def add(self, dbsession, count, study, loc, year, creator):
-        """add batch subjects"""
-
         tStu = Study.search(study, dbsession)
         tLoc = Location.search(loc, dbsession)
         tCrt = search_user(dbsession, creator)
+        sub = Subject(uuid=tUuid, study_id=tStu, subject_number=num, location_id=tLoc, year=year,
+                      creator_id=tCrt)
+        dbsession.add(sub)
+
+
+    def addBatch(self, dbsession, count, study, loc, year, creator):
+        """add batch subjects"""
 
         sub = self.getLastSub(dbsession, study, loc, year)
         if sub is None:
@@ -124,7 +125,7 @@ class Subject(Base):
 
         for inc in range(count):
             tNum = maxNum + count + 1
-            self.addOne(dbsession, tNum, tStu, tLoc, year, tCrt)
+            self.add(dbsession, tNum, study, loc, year, creator)
 
 
     def update(self, obj):

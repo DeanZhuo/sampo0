@@ -41,7 +41,7 @@ class Sample(Base):
         'polymorphic_on': spext
     }
 
-    # TODO: bulk insert from dict, assign box
+    # TODO: bulk insert from dict, assign box, check status
 
 
     def update(self, obj):
@@ -85,6 +85,10 @@ class Sample(Base):
             if 'ext_method_id' in obj:
                 self.ext_method_id = obj['ext_method_id']
 
+            return self
+
+        raise NotImplementedError('ERR: updating object uses dictionary object')
+
 
     @staticmethod
     def search(dbsession, samp):
@@ -123,6 +127,30 @@ class Sample(Base):
 
         if qResult: return qResult
         return None
+
+
+    @staticmethod
+    def checkStatus(dbsession, sampleList, status):
+        """check all sample availability from list, return a list"""
+
+        retList = list()
+        for sample in sampleList:
+            tSam = Sample.search(dbsession, sample)
+            if tSam.status is not status:
+                retList.append(tSam)
+
+        return retList
+
+
+    @staticmethod
+    def changeStatus(dbsession, sampleList, status):
+        """check all sample availability from list, return a list"""
+
+        retList = list()
+        for sample in sampleList:
+            tSam = Sample.search(dbsession, sample)
+            tSam.status = status
+            # TODO: update database
 
 
 def getSpecLabel(dbsession, study, subject, type, aliquot):
@@ -185,10 +213,17 @@ class Specimen(Sample):
 
         tUuid = UUID.new()
         tLabel = getSpecLabel(dbsession, study, subject, type, ali)
-        spec = Specimen(uuid=tUuid, box_id=box, spext="SPECIMEN", study_id=study,
-                            subject_id=subject, type_id=type, label=tLabel, date=date,
-                            storage_id=storage, creator_id=creator, desc=desc, status=status,
-                            aliquot=ali, aliquot_total=cAli, spec_source_id=source)
+        tStu = Study.search(study, dbsession)
+        tSub = Subject.get(subject, dbsession)
+        tStor = EK.getid(storage, dbsession, grp='@SAMSTORAGE')
+        tCrt = search_user(dbsession, creator)
+        tSource = EK.getid(source, dbsession, grp='@SPECSOURCE')
+        tType = EK.getid(type, dbsession, grp='@SAMTYPE')
+
+        spec = Specimen(uuid=tUuid, box_id=box, spext='SPECIMEN', study_id=tStu,
+                            subject_id=tSub, type_id=tType, label=tLabel, date=date,
+                            storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
+                            aliquot=ali, aliquot_total=cAli, spec_source_id=tSource)
 
         dbsession.add(spec)
 
@@ -209,22 +244,16 @@ class Specimen(Sample):
         """
 
         for subject, subSpec in subjectDict:
-            tStu = Study.search(study, dbsession)
-            tSub = Subject.get(subject, dbsession)
-            tStor = EK.getid(subSpec["storage"], dbsession, grp='@SAMSTORAGE')
-            tCrt = search_user(dbsession, creator)
-            tSource = EK.getid(subSpec["source"], dbsession, grp='@SPECSOURCE')
-
-            tType = EK.getid(subSpec["type"], dbsession, grp='@SAMTYPE')
             for n in range(subSpec["aliquot"]):
                 tAli = n + 1
 
                 if "desc" in subSpec:
-                    self.add(dbsession, tStu, tSub, tType, subSpec["date"], tStor, tCrt,
-                             tAli, subSpec["aliquot"], tSource, subSpec["desc"])
+                    self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
+                             subSpec["storage"], creator, tAli, subSpec["aliquot"], subSpec["source"],
+                             subSpec["desc"])
                 else:
-                    self.add(dbsession, tStu, tSub, tType, subSpec["date"], tStor, tCrt,
-                             tAli, subSpec["aliquot"], tSource,)
+                    self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
+                             subSpec["storage"], creator, tAli, subSpec["aliquot"], subSpec["source"])
 
 
 class Extraction(Sample):   # TODO: question: does extraction has aliquot?
@@ -250,10 +279,17 @@ class Extraction(Sample):   # TODO: question: does extraction has aliquot?
 
         tUuid = UUID.new()
         tLabel = getExtLabel(dbsession, spec, type)
-        ext = Extraction(uuid=tUuid, box_id=box, spext="EXTRACTION", study_id=study,
-                             subject_id=subject, type_id=type, label=tLabel, date=date,
-                             storage_id=storage, creator_id=creator, desc=desc, status=status,
-                             spec_id=spec, ext_method_id=method)
+        tSpec = Specimen.search(dbsession, spec)
+        tSub = Subject.get(subject, dbsession)
+        tStu = Study.search(study, dbsession)
+        tType = EK.getid(type, dbsession, grp='@SAMTYPE')
+        tStor = EK.getid(storage, dbsession, grp='@SAMSTORAGE')
+        tMed = EK.getid(method, dbsession, grp='@EXTMETHOD')
+        tCrt = search_user(dbsession, creator)
+        ext = Extraction(uuid=tUuid, box_id=box, spext='EXTRACTION', study_id=tStu,
+                             subject_id=tSub, type_id=tType, label=tLabel, date=date,
+                             storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
+                             spec_id=tSpec, ext_method_id=tMed)
 
         dbsession.add(ext)
 
@@ -275,16 +311,12 @@ class Extraction(Sample):   # TODO: question: does extraction has aliquot?
         for spec, extSpec in extDict:
             tSpec = Specimen.search(dbsession, spec)
             subject = tSpec.subject_id
-            tSub = Subject.get(subject, dbsession)
             study = tSpec.study_id
-            tStu = Study.search(study, dbsession)
-            tType = EK.getid(extSpec["type"], dbsession, grp='@SAMTYPE')
-            tStor = EK.getid(extSpec["storage"], dbsession, grp='@SAMSTORAGE')
-            tMed = EK.getid(extSpec["method"], dbsession, grp='@EXTMETHOD')
-            tCrt = search_user(dbsession, creator)
 
             if "desc" in extSpec:
-                self.add(dbsession, tStu, tSub, tType, extSpec["date"], tStor, tCrt, tSpec, tMed,
+                self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
+                         extSpec["storage"], creator, tSpec, extSpec["method"],
                          extSpec["desc"])
             else:
-                self.add(dbsession, tStu, tSub, tType, extSpec["date"], tStor, tCrt, tSpec, tMed)
+                self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
+                         extSpec["storage"], creator, tSpec, extSpec["method"])
