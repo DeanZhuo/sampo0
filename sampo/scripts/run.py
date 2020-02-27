@@ -1,4 +1,3 @@
-
 import sys, os
 import argparse
 
@@ -6,6 +5,7 @@ from rhombus.scripts.run import main as rhombus_main, set_config
 from rhombus.lib.utils import cout, cerr, cexit
 
 from sampo.models.handler import DBHandler
+
 
 def greet():
     cerr('command line utility for sampo')
@@ -18,15 +18,12 @@ def usage():
     sys.exit(0)
 
 
-set_config( environ='RHOMBUS_CONFIG',
-            paths = ['sampo.scripts.'],
-            greet = greet,
-            usage = usage,
-            dbhandler_class = DBHandler,
-            includes = ['sampo.includes'],
-)
+set_config(environ='RHOMBUS_CONFIG',
+           paths=['sampo.scripts.'],
+           greet=greet,
+           usage=usage,
+           dbhandler_class=DBHandler,
+           includes=['sampo.includes'],
+           )
 
 main = rhombus_main
-
-
-

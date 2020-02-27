@@ -1,6 +1,6 @@
-
 from rhombus.models.core import *
 from rhombus.models.ek import *
+
 
 class Post(Base, BaseMixIn):
     """
@@ -16,7 +16,6 @@ class Post(Base, BaseMixIn):
 
     posttype_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     posttype = EK.proxy('posttype_id', '@POSTTYPE')
-
 
     def update(self, obj):
         if isinstance(obj, dict):
@@ -36,9 +35,7 @@ class Post(Base, BaseMixIn):
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
 
-
 class Tag(Base):
-
     __tablename__ = 'tags'
 
     id = Column(types.Integer, primary_key=True)
@@ -47,15 +44,14 @@ class Tag(Base):
     post = relationship(Post, uselist=False, backref=backref('tags', cascade='delete, delete-orphan'))
 
     tag_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False, index=True)
-    tag = relationship(EK, uselist=False, foreign_keys=tag_id )
+    tag = relationship(EK, uselist=False, foreign_keys=tag_id)
 
     user_id = Column(types.Integer, ForeignKey('users.id'))
 
-    __table_args__ = (  UniqueConstraint('post_id', 'tag_id'), )
-
+    __table_args__ = (UniqueConstraint('post_id', 'tag_id'),)
 
     @classmethod
-    def sync_tags(cls, node_id, tag_ids, user_id = None, session = None):
+    def sync_tags(cls, node_id, tag_ids, user_id=None, session=None):
         # synchronize node_id and tag_ids
 
         # check sanity
@@ -75,7 +71,7 @@ class Tag(Base):
         in_sync = []
         for tag in tags:
             if tag.tag_id in tag_ids:
-                in_sync.append( tag.tag_id )
+                in_sync.append(tag.tag_id)
             else:
                 # remove this tag
                 session.delete(tag)
@@ -86,7 +82,6 @@ class Tag(Base):
             print('add %d' % tag_id)
             cls.add_tag(node_id, tag_id, user_id, session)
 
-
     @classmethod
     def add_tag(cls, node_id, tag_id, user_id, session):
         assert type(tag_id) == int
@@ -94,11 +89,10 @@ class Tag(Base):
         if not session:
             session = get_dbhandler().session()
         if type(node_id) == int:
-            tag = cls(node_id = node_id, tag_id = tag_id, user_id = user_id)
+            tag = cls(node_id=node_id, tag_id=tag_id, user_id=user_id)
         else:
-            tag = cls(node = node_id, tag_id = tag_id, user_id = user_id)
+            tag = cls(node=node_id, tag_id=tag_id, user_id=user_id)
         session.add(tag)
-
 
     @classmethod
     def remove_tag(cls, node_id, tag_id, user_id, session):

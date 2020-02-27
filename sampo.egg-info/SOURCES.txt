@@ -14,10 +14,13 @@ sampo.egg-info/not-zip-safe
 sampo.egg-info/requires.txt
 sampo.egg-info/top_level.txt
 sampo/models/__init__.py
+sampo/models/fridge.py
 sampo/models/handler.py
 sampo/models/post.py
+sampo/models/sample.py
 sampo/models/setup.py
 sampo/models/study.py
+sampo/models/transaction.py
 sampo/scripts/__init__.py
 sampo/scripts/run.py
 sampo/scripts/shell.py

@@ -1,16 +1,23 @@
-
 from rhombus.models import handler as rhombus_handler
 from rhombus.lib.utils import cerr, cout
 
 from .setup import setup
 
-from sampo.models import post
+from sampo.models import post, study, sample, fridge, transaction
+
 
 class DBHandler(rhombus_handler.DBHandler):
-
     # add additional class references
     Post = post.Post
-
+    Study = study.Study
+    Location = study.Location
+    Subject = study.Subject
+    Sample = sample.Sample
+    Fridge = fridge.Fridge
+    Rack = fridge.Rack
+    Box = fridge.Box
+    BoxCell = fridge.BoxCell
+    TakeReturn = transaction.TakeReturn
 
     def initdb(self, create_table=True, init_data=True, rootpasswd=None):
         """ initialize database """
@@ -19,7 +26,6 @@ class DBHandler(rhombus_handler.DBHandler):
             from .setup import setup
             setup(self)
             cerr('[sampo-rbmgr] Database has been initialized')
-
 
     # add additional methods here
 
@@ -30,8 +36,126 @@ class DBHandler(rhombus_handler.DBHandler):
 
     def get_posts(self, query=None):
         """ get multiple posts by query """
-        q = self.Post.query( self.session() )
+        q = self.Post.query(self.session())
 
         # do the necessary filtering here
 
         return q.all()
+
+    def get_study(self, stud):
+        """get study by name or all"""
+
+        if stud is None:
+            return self.Study.query(self.session()).all()
+        if isinstance(stud, int):
+            return self.Study.get(stud, self.session())
+        if isinstance(stud, list):
+            return [self.get_study(x) for x in stud]
+        if isinstance(stud, str):
+            return self.Study.search(stud, self.session())
+
+        raise RuntimeError('ERR: unknown data type for getting Study')
+
+    def get_location(self, loc=None):
+        """get location by name or all"""
+
+        if loc is None:
+            return self.Location.query(self.session()).all()
+        if isinstance(loc, int):
+            return self.Location.get(loc, self.session())
+        if isinstance(loc, list):
+            return [self.get_location(x) for x in loc]
+        if isinstance(loc, str):
+            return self.Location.search(loc, self.session())
+
+        raise RuntimeError('ERR: unknown data type for getting Location')
+
+    def get_subject(self, sub=None):
+        """get subject"""
+
+        if sub is None:
+            return self.Subject.query(self.session()).all()
+        if isinstance(sub, int):
+            return self.Subject.get(sub, self.session())
+        if isinstance(sub, list):
+            return [self.get_subject(x) for x in sub]
+
+        raise RuntimeError('ERR: unknown data type for getting Subject')
+
+    def get_sample(self, sam=None):
+        """get sample by name or all"""
+
+        if sam is None:
+            return self.Sample.query(self.session()).all()
+        if isinstance(sam, int):
+            return self.Sample.get(sam, self.session())
+        if isinstance(sam, list):
+            return [self.get_sample(x) for x in sam]
+        if isinstance(sam, str):
+            return self.Sample.search(sam, self.session())
+
+        raise RuntimeError('ERR: unknown data type for getting Sample')
+
+    def get_fridge(self, frid=None):
+        """get fridge by name or all"""
+
+        if frid is None:
+            return self.Fridge.query(self.session()).all()
+        if isinstance(frid, int):
+            return self.Fridge.get(frid, self.session())
+        if isinstance(frid, list):
+            return [self.get_fridge(x) for x in frid]
+        if isinstance(frid, str):
+            return self.Fridge.search(frid, self.session())
+
+        raise RuntimeError('ERR: unknown data type for getting Fridge')
+
+    def get_rack(self, rck=None):
+        """get rack"""
+
+        if rck is None:
+            return self.Rack.query(self.session()).all()
+        if isinstance(rck, int):
+            return self.Rack.get(rck, self.session())
+        if isinstance(rck, list):
+            return [self.get_rack(x) for x in rck]
+
+        raise RuntimeError('ERR: unknown data type for getting Rack')
+
+    def get_box(self, bx=None):
+        """get box by name or all"""
+
+        if bx is None:
+            return self.Box.query(self.session()).all()
+        if isinstance(bx, int):
+            return self.Box.get(bx, self.session())
+        if isinstance(bx, list):
+            return [self.get_box(x) for x in bx]
+        if isinstance(bx, str):
+            return self.Box.search(bx, self.session())
+
+        raise RuntimeError('ERR: unknown data type for getting Box')
+
+    def get_boxcell(self, cell=None):
+        """get box cell"""
+
+        if cell is None:
+            return self.BoxCell.query(self.session()).all()
+        if isinstance(cell, int):
+            return self.BoxCell.get(cell, self.session())
+        if isinstance(cell, list):
+            return [self.get_boxcell(x) for x in cell]
+
+        raise RuntimeError('ERR: unknown data type for getting BoxCell')
+
+    def get_takereturn(self, tr=None):
+        """get loc by name or all"""
+
+        if tr is None:
+            return self.TakeReturn.query(self.session()).all()
+        if isinstance(tr, int):
+            return self.TakeReturn.get(tr, self.session())
+        if isinstance(tr, list):
+            return [self.get_takereturn(x) for x in tr]
+
+        raise RuntimeError('ERR: unknown data type for getting TakeReturn')

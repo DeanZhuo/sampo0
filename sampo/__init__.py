@@ -12,11 +12,11 @@ from sampo.scripts import run
 from sampo.views import *
 
 
-def includeme( config ):
+def includeme(config):
     """ this configuration must be included as the last order
     """
 
-    set_func_userid( get_userid_func )
+    set_func_userid(get_userid_func)
 
     config.add_static_view('static', 'static', cache_max_age=3600)
 
@@ -46,7 +46,6 @@ def includeme( config ):
     config.add_route('post-view', '/posts/{id}')
     config.add_view('sampo.views.post.PostViewer', attr='index', route_name='post-view')
 
-
     # add additional routes and views here
 
 
@@ -62,6 +61,6 @@ def main(global_config, **settings):
 
     # attach rhombus to /mgr url, include custom configuration
     config = init_app(global_config, settings, prefix='/mgr'
-                    , include = includeme, include_tags = [ 'sampo.includes' ])
+                      , include=includeme, include_tags=['sampo.includes'])
 
     return config.make_wsgi_app()

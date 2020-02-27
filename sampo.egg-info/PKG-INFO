@@ -20,6 +20,7 @@ Description: sampo README
         
         - $VENV/bin/pserve development.ini
         
+        this init file need improvement
         
         
         0.0

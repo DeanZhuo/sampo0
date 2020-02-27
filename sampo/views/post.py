@@ -1,7 +1,9 @@
 ## simple example of typical rhombus viewer
+from pyramid.httpexceptions import HTTPFound
+from pyramid.renderers import render_to_response
 
 from sampo.views import *
-from rhombus.lib.utils import random_string
+from rhombus.lib.utils import random_string, get_dbhandler
 
 
 class PostViewer(object):
@@ -102,7 +104,8 @@ class PostViewer(object):
             name="sampo.post-hidden"
         )
 
-    def parse_form(self, f, d=None):
+    @staticmethod
+    def parse_form(f, d=None):
 
         d = d or dict()
 

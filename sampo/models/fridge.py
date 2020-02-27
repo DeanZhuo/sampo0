@@ -1,6 +1,7 @@
 from .sample import *
 
-# TODO: setter getter handler, bulk add
+
+# TODO: bulk add, check move destination
 # TODO: shelf = level, add isFull to rack database
 
 
@@ -31,6 +32,7 @@ class Fridge(Base):
 
     fridge_desc = Column(types.String(128))
     fridge_isFull = Column(types.Boolean, nullable=False, server_default=False)
+    # TODO: check status at starting and after moving
 
     shelf = Column(types.SmallInteger, nullable=False)
     rack = Column(types.SmallInteger, nullable=False)
@@ -43,24 +45,33 @@ class Fridge(Base):
     last_user_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     last_user = relationship(User, backref=backref('fridges'))
 
-
-    def add(self, group, name, type, model, temp, loc, desc, full, shelf, rack, row, column,
-            creator, last_user):
+    @staticmethod
+    def add(group, name, type, model, temp, loc, desc, full, shelf, rack, row, column,
+            creator=None, last_user=None):
         """add a fridge"""
 
+        dbh = get_dbhandler()
+
+        if creator is None:
+            tCrt = get_userid()
+        else:
+            tCrt = dbh.get_user(user=creator)
+
+        if last_user is None:
+            tLUsr = get_userid()
+        else:
+            tLUsr = dbh.get_user(user=last_user)
+
         tUuid = UUID.new()
-        tGroup = Group.search(group, dbsession)
+        tGroup = dbh.get_group(group=group)
         tGName = tGroup.name
         tType = EK.getid(type, dbsession, grp='@FRIDGETYPE')
         tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
-        tCrt = search_user(dbsession, creator)
-        tLUsr = search_user(dbsession, last_user)
         fridge = Fridge(uuid=tUuid, group_name=tGName, fridge_name=name, fridge_type_id=tType,
                         fridge_model=model, temperature=temp, fridge_location_id=tLoc, fridge_desc=desc,
                         fridge_isFull=full, shelf=shelf, rack=rack, depth_row=row, depth_column=column,
                         creator_id=tCrt, last_user_id=tLUsr)
         dbsession.add(fridge)
-
 
     def update(self, obj):
         """update from dictionary"""
@@ -99,19 +110,13 @@ class Fridge(Base):
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
-
     @staticmethod
     def search(dbsession, fridge):
         """search by name"""
 
-        if type(fridge) is int:
-            pass
-            # TODO: setter getter
-
         q = Fridge.query(dbsession).filter(Fridge.fridge_name == fridge).first()
         if q: return q
-        return q
-
+        return None
 
     def edit(self, dbsession, temp, loc, desc):
         """edit fidge"""
@@ -125,10 +130,11 @@ class Fridge(Base):
         # TODO: update to database
 
     @staticmethod
-    def checkFull(dbsession, fridge):
+    def checkFull(fridge):
         """check fridge status"""
 
-        tFridge = Fridge.search(dbsession, fridge)
+        dbh = get_dbhandler()
+        tFridge = dbh.get_fridge(frid=fridge)
         lRacks = list()
         # TODO: get list of racks by fridge id
 
@@ -157,17 +163,18 @@ class Rack(Base):
     num_row = Column(types.SmallInteger, nullable=False)
     num_column = Column(types.SmallInteger, nullable=False)
     rack_isFull = Column(types.Boolean, nullable=False, server_default=False)
+    # TODO: check status at starting and after moving
 
-
-    def add(self, dbsession, fridge, shelf, pos, row, col, full):
+    @staticmethod
+    def add(dbsession, fridge, shelf, pos, row, col, full):
         """add a rack"""
 
+        dbh = get_dbhandler()
         tUuid = UUID.new()
-        tFridge = Fridge.search(dbsession, fridge)
+        tFridge = dbh.get_fridge(frid=fridge)
         rack = Rack(uuid=tUuid, fridge_id=tFridge, shelf_num=shelf, rack_post=pos,
                     num_row=row, num_column=col, rack_isFull=full)
         dbsession.add(rack)
-
 
     def update(self, obj):
         """update from dictionary"""
@@ -190,11 +197,13 @@ class Rack(Base):
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
-
     def move(self, rack):
-        """move rack"""
+        """swap with an empty rack"""
 
-        tRack = rack    # TODO: getter
+        dbh = get_dbhandler()
+        tRack = dbh.get_rack(rck=rack)
+        if self.checkStatus(tRack) is not 'empty':
+            return ''
 
         if self.num_row == tRack.shelf_num and self.num_column == tRack.num_column:
             self.fridge_id, tRack.fridge_id = tRack.fridge_id, self.fridge_id
@@ -204,17 +213,20 @@ class Rack(Base):
             # TODO: update database
 
     @staticmethod
-    def checkFull(dbsession, rack):
+    def checkStatus(rack):
         """check rack status"""
 
-        tRack = rack    # TODO: getter
+        dbh = get_dbhandler()
+        tRack = dbh.get_rack(rck=rack)
         lBox = list()
-        # TODO: get list of racks by fridge id
+        # TODO: get list of box by rack id
 
-        for box in lBox:
-            if box.box_isFull is False:
-                return False
-        return True
+        if lBox:
+            for box in lBox:
+                if box.box_isFull:
+                    return 'full'
+            return 'available'
+        return 'empty'
 
 
 class Box(Base):
@@ -228,29 +240,30 @@ class Box(Base):
     id = Column(types.Integer, Sequence('box_seq_id', optional=True), primary_key=True)
     uuid = Column(types.String, nullable=False)
     box_name = Column(types.String(32), nullable=False)
-    box_type = Column(types.SmallInteger, nullable=False)   # 0 = normal box, 1 = grid box
+    box_type = Column(types.SmallInteger, nullable=False)  # 0 = normal box, 1 = grid box
 
     rack_id = Column(types.Integer, ForeignKey('racks.id'), nullable=False)
     rack = relationship(Rack, backref=backref('boxes'))
 
     row = Column(types.SmallInteger, nullable=False)
     column = Column(types.SmallInteger, nullable=False)
-    box_isFull = Column(types.Boolean, nullable=False, server_default=False)    # normal always False
+    box_isFull = Column(types.Boolean, nullable=False, server_default=False)  # normal always False
+    # TODO: check status at starting and after moving
 
-
-    def add(self, dbsession, name, type, rack, row, col, full):
+    @staticmethod
+    def add(dbsession, name, type, rack, row, col, full):
         """add a box"""
 
+        dbh = get_dbhandler()
         tUuid = UUID.new()
-        if type.lower() is 'grid' or type is 1:
+        if type.lower() == 'grid' or type == 1:
             tType = 1
         else:
             tType = 0
-        tRack = rack    # TODO: getter
+        tRack = dbh.get_rack(rck=rack)
         box = Box(uuid=tUuid, box_name=name, box_type=tType, rack_id=tRack, row=row, column=col,
                   box_isFull=full)
         dbsession.add(box)
-
 
     def update(self, obj):
         """update from dictionary"""
@@ -273,41 +286,35 @@ class Box(Base):
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
-
     @staticmethod
     def search(dbsession, boxname):
-        """serach by name"""
-
-        if type(boxname) is int:
-            pass
-            # TODO: setter getter
+        """search by name"""
 
         q = Box.query(dbsession).filter(Box.box_name == boxname).first()
         if q: return q
-        return q
+        return None
 
-
-    def move(self, dbsession, rack, row, col):
+    def move(self, rack, row, col):
         """move box"""
 
-        tRack = rack    # TODO: getter
+        dbh = get_dbhandler()
+        tRack = dbh.get_rack(rck=rack)
         self.rack_id = tRack
         self.row = row
         self.column = col
-
         # TODO: update database
 
-
     @staticmethod
-    def checkFull(dbsession, box):
+    def checkFull(box):
         """check box status"""
 
-        tBox = Box.search(dbsession, box)
+        dbh = get_dbhandler()
+        tBox = dbh.get_box(bx=box)
         lCells = list()
-        # TODO: get list of racks by fridge id
+        # TODO: get list of cells by box id
 
         for cell in lCells:
-            if cell.cell_status is 'E':
+            if cell.cell_status == 'E':
                 return False
         return True
 
@@ -322,7 +329,7 @@ class BoxCell(Base):
 
     id = Column(types.Integer, Sequence('boxcell_seq_id', optional=True), primary_key=True)
     column = Column(types.SmallInteger, nullable=False)
-    row = Column(types.SmallInteger, nullable=False)
+    row = Column(types.String(1), nullable=False)
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'))
     sample = relationship(Sample, backref=backref('boxcells'))
@@ -333,24 +340,22 @@ class BoxCell(Base):
     cell_status = Column(types.String, nullable=False, server_default='E')
     # 'E'mpty, 'A'vailable, 'N'ot available
 
-
-    def add(self, dbsession, col, row, sample, box, stat):
+    @staticmethod
+    def add(dbsession, col, row, sample, box, stat):
         """add a cell"""
 
-        tSam = Sample.search(dbsession, sample)
-        tBox = Box.search(dbsession, box)
+        dbh = get_dbhandler()
+        tSam = dbh.get_sample(sam=sample)
+        tBox = dbh.get_box(bx=box)
         cell = BoxCell(column=col, row=row, sample_id=tSam, box_id=tBox, cell_status=stat)
         dbsession.add(cell)
-
 
     def addBatch(self, dbsession, box):
         """add cell for box"""
 
-        tBox = Box.search(dbsession, box)
         for col in range(1, 9):
             for row in range(1, 9):
-                self.add(dbsession, col, row, None, tBox,False)
-
+                self.add(dbsession, col, row, None, box, False)
 
     def update(self, obj):
         """update from dictionary"""

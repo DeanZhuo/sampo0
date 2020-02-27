@@ -1,5 +1,8 @@
+from sqlalchemy import and_
+
 from .study import *
-from rhombus.models.ek import *
+
+# TODO: bulk insert, assign box
 
 
 class Sample(Base):
@@ -40,9 +43,6 @@ class Sample(Base):
         'polymorphic_identity': 'sample',
         'polymorphic_on': spext
     }
-
-    # TODO: bulk insert from dict, assign box, check status
-
 
     def update(self, obj):
         """update from dictionary"""
@@ -89,25 +89,17 @@ class Sample(Base):
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
-
     @staticmethod
     def search(dbsession, samp):
         """search by name or label"""
-
-        if type(samp) is int:
-            pass
-            # TODO: setter getter
 
         q = Sample.query(dbsession).filter(Sample.label == samp).first()
         if q: return q
         return q
 
-
     @staticmethod
     def searchPage(dbsession, label, study, spext, type, dStart, dEnd):
         """function for search page"""
-
-        # TODO: snap new search page
 
         qResult = Sample.query(dbsession).filter(and_(Sample.date >= dStart, Sample.date <= dEnd)).all()
 
@@ -119,7 +111,7 @@ class Sample(Base):
         if spext:
             qResult.query(dbsession).filter(Sample.spext == spext).all()
         if type:
-            if type(type) is not int:
+            if not isinstance(type, int):
                 tType = EK.getid(type, dbsession, grp='@SAMTYPE')
             else:
                 tType = type
@@ -128,27 +120,26 @@ class Sample(Base):
         if qResult: return qResult
         return None
 
-
     @staticmethod
-    def checkStatus(dbsession, sampleList, status):
+    def checkStatus(sampleList, status):
         """check all sample availability from list, return a list"""
 
+        dbh = get_dbhandler()
         retList = list()
         for sample in sampleList:
-            tSam = Sample.search(dbsession, sample)
+            tSam = dbh.get_sample(sam=sample)
             if tSam.status is not status:
                 retList.append(tSam)
 
         return retList
 
-
     @staticmethod
-    def changeStatus(dbsession, sampleList, status):
+    def changeStatus(sampleList, status):
         """check all sample availability from list, return a list"""
 
-        retList = list()
+        dbh = get_dbhandler()
         for sample in sampleList:
-            tSam = Sample.search(dbsession, sample)
+            tSam = dbh.get_sample(sam=sample)
             tSam.status = status
             # TODO: update database
 
@@ -156,10 +147,11 @@ class Sample(Base):
 def getSpecLabel(dbsession, study, subject, type, aliquot):
     """make label for specimen"""
 
-    tStu = Study.search(study, dbsession)
+    dbh = get_dbhandler()
+    tStu = dbh.get_study(stud=study)
     cStu = tStu.study_number.upper()
 
-    tSub = Subject.get(subject)
+    tSub = dbh.get_subject(sub=subject)
     year = tSub.year
     if checkYear(year) is False:
         RuntimeError('FATAL ERR: year not valid! 1899 < year < 2999, 4 digits format!')
@@ -181,7 +173,8 @@ def getSpecLabel(dbsession, study, subject, type, aliquot):
 def getExtLabel(dbsession, spec, type):
     """make label for extraction"""
 
-    tSpec = Specimen.search(dbsession, spec)
+    dbh = get_dbhandler()
+    tSpec = dbh.get_sample(sam=spec)
     cLabel = tSpec.label
 
     tType = EK.getid(type, dbsession, grp='@SAMTYPE')
@@ -206,27 +199,32 @@ class Specimen(Sample):
         'polymorphic_identity': 'specimen'
     }
 
-
-    def add(self, dbsession, study, subject, type, date, storage, creator, ali, cAli,
-            source, desc=None, box=None, status='A'):
+    @staticmethod
+    def add(dbsession, study, subject, type, date, storage, ali, cAli, source,
+            creator=None, desc=None, box=None, status='A'):
         """add a specimen, with or without box id"""
+
+        dbh = get_dbhandler()
+
+        if creator is None:
+            tCrt = get_userid()
+        else:
+            tCrt = dbh.get_user(user=creator)
 
         tUuid = UUID.new()
         tLabel = getSpecLabel(dbsession, study, subject, type, ali)
-        tStu = Study.search(study, dbsession)
-        tSub = Subject.get(subject, dbsession)
+        tStu = dbh.get_study(stud=study)
+        tSub = dbh.get_subject(sub=subject)
         tStor = EK.getid(storage, dbsession, grp='@SAMSTORAGE')
-        tCrt = search_user(dbsession, creator)
         tSource = EK.getid(source, dbsession, grp='@SPECSOURCE')
         tType = EK.getid(type, dbsession, grp='@SAMTYPE')
 
         spec = Specimen(uuid=tUuid, box_id=box, spext='SPECIMEN', study_id=tStu,
-                            subject_id=tSub, type_id=tType, label=tLabel, date=date,
-                            storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
-                            aliquot=ali, aliquot_total=cAli, spec_source_id=tSource)
+                        subject_id=tSub, type_id=tType, label=tLabel, date=date,
+                        storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
+                        aliquot=ali, aliquot_total=cAli, spec_source_id=tSource)
 
         dbsession.add(spec)
-
 
     def addBatchSubject(self, dbsession, study, subjectDict, creator):
         """
@@ -247,16 +245,16 @@ class Specimen(Sample):
             for n in range(subSpec["aliquot"]):
                 tAli = n + 1
 
-                if "desc" in subSpec:
+                if 'desc' in subSpec:
                     self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
-                             subSpec["storage"], creator, tAli, subSpec["aliquot"], subSpec["source"],
+                             subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator,
                              subSpec["desc"])
                 else:
                     self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
-                             subSpec["storage"], creator, tAli, subSpec["aliquot"], subSpec["source"])
+                             subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator)
 
 
-class Extraction(Sample):   # TODO: question: does extraction has aliquot?
+class Extraction(Sample):  # TODO: question: does extraction has aliquot?
     """
     class for specimen's extractions
     extract parts of the specimen
@@ -272,27 +270,32 @@ class Extraction(Sample):   # TODO: question: does extraction has aliquot?
         'polymorphic_identity': 'extraction'
     }
 
-
-    def add(self, dbsession, study, subject, type, date, storage, creator, spec, method,
-            desc=None, box=None, status='A'):
+    @staticmethod
+    def add(dbsession, study, subject, type, date, storage, spec, method,
+            creator=None, desc=None, box=None, status='A'):
         """add a extraction, with or without box id"""
+
+        dbh = get_dbhandler()
+
+        if creator is None:
+            tCrt = get_userid()
+        else:
+            tCrt = dbh.get_user(user=creator)
 
         tUuid = UUID.new()
         tLabel = getExtLabel(dbsession, spec, type)
-        tSpec = Specimen.search(dbsession, spec)
-        tSub = Subject.get(subject, dbsession)
-        tStu = Study.search(study, dbsession)
+        tSpec = dbh.get_sample(sam=spec)
+        tSub = dbh.get_subject(sub=subject)
+        tStu = dbh.get_study(stud=study)
         tType = EK.getid(type, dbsession, grp='@SAMTYPE')
         tStor = EK.getid(storage, dbsession, grp='@SAMSTORAGE')
         tMed = EK.getid(method, dbsession, grp='@EXTMETHOD')
-        tCrt = search_user(dbsession, creator)
         ext = Extraction(uuid=tUuid, box_id=box, spext='EXTRACTION', study_id=tStu,
-                             subject_id=tSub, type_id=tType, label=tLabel, date=date,
-                             storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
-                             spec_id=tSpec, ext_method_id=tMed)
+                         subject_id=tSub, type_id=tType, label=tLabel, date=date,
+                         storage_id=tStor, creator_id=tCrt, desc=desc, status=status,
+                         spec_id=tSpec, ext_method_id=tMed)
 
         dbsession.add(ext)
-
 
     def addBatchType(self, dbsession, extDict, creator):
         """
@@ -308,15 +311,62 @@ class Extraction(Sample):   # TODO: question: does extraction has aliquot?
                         }
         """
 
+        dbh = get_dbhandler()
+
         for spec, extSpec in extDict:
-            tSpec = Specimen.search(dbsession, spec)
+            tSpec = dbh.get_sample(sam=spec)
             subject = tSpec.subject_id
             study = tSpec.study_id
 
-            if "desc" in extSpec:
+            if 'desc' in extSpec:
                 self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
-                         extSpec["storage"], creator, tSpec, extSpec["method"],
+                         extSpec["storage"], tSpec, extSpec["method"], creator,
                          extSpec["desc"])
             else:
                 self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
-                         extSpec["storage"], creator, tSpec, extSpec["method"])
+                         extSpec["storage"], tSpec, extSpec["method"], creator)
+
+
+def assignBox(moveDict):
+    """
+        move specimen and extraction according to dictionary.
+        can only be moved to similar box type.
+        moveDict = {
+                        "Sample.id" : {
+                                        "fridge" : string
+                                        "shelf" : int
+                                        "rack" : int
+                                        "box" : string
+                                        "column" : string
+                                        "row" : int
+                                        }
+                    }
+    """
+
+    retList = list()
+    dbh = get_dbhandler()
+
+    for sample, dest in moveDict:
+        tSam = dbh.get_sample(sam=sample)
+        nBox = dbh.get_box(bx=dest['box'])
+
+        if tSam.box_id is not None:
+            oBox = dbh.get_box(bx=tSam.box_id)
+            if oBox.box_type != nBox.box_type:
+                retList.append(tSam)
+                continue
+            if oBox.box_type == 1:
+                oCell = dest['column']  # TODO: get cell by sample
+                oCell.sample_id = None
+                oCell.status = 'E'
+
+        nRack = dest['rack']    # TODO: get rack by fridge and shelf
+        nCell = dest['column']  # TODO: get cell by box, col, row
+        nCell.sample_id = tSam
+        nCell.status = tSam.status
+
+        tSam.box_id = nBox
+        # TODO: update database
+
+    return retList
+
