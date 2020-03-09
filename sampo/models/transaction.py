@@ -1,4 +1,6 @@
 from .sample import *
+from datetime import date
+
 
 # TODO: bulk add, make reports
 
@@ -71,6 +73,20 @@ class TakeReturn(Base):
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
+    @staticmethod
+    def search(sample):
+        """search by sample"""
+
+        if isinstance(sample, int) is not True:
+            dbh = get_dbhandler()
+            tSam = dbh.get_sample(sam=sample)
+        else:
+            tSam = sample
+
+        q = TakeReturn.query(dbsession).filter(TakeReturn.sample_id == tSam, TakeReturn.returned == False).first()
+        if q: return q
+        return None
+
     def transaction(self, dbsession, sampleList, user, date, type):
         """take and return transaction"""
 
@@ -78,12 +94,28 @@ class TakeReturn(Base):
             status = 'N'
             self.addBatch(dbsession, sampleList, user, date)
         else:
-            status = 'N'
-            lTrans = list()
-            # TODO: getter by sample list
-
-            for trans in lTrans:
-                trans.returned = True
+            status = 'A'
+            for sample in sampleList:
+                tTrans = self.search(sample)
+                tTrans.returned = True
                 # TODO: update database
 
         Sample.changeStatus(sampleList, status)
+
+
+def sampleReport(): # TODO: not yet
+    """return list of not returned sample"""
+
+    dbh = get_dbhandler()
+    return dbh.get_takereturn(take=True)
+
+
+def annualReport(dbsession, year):
+    """return annual report by year"""
+
+    checkYear(year)
+    start = date(year-1, 12, 31)
+    end = date(year+1, 1, 1)
+    qSam = Sample.query(dbsession).filter(Sample.date.between(start,end)).all()
+
+

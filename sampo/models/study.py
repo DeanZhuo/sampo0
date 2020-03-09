@@ -160,10 +160,11 @@ class Subject(Base):
                       creator_id=tCrt)
         dbsession.add(sub)
 
-    def addBatch(self, dbsession, count, study, loc, year, creator):
+    @staticmethod
+    def addBatch(dbsession, count, study, loc, year, creator):
         """add batch subjects"""
 
-        sub = self.getLastSub(study, loc, year)
+        sub = Subject.getLastSub(study, loc, year)
         if sub is None:
             maxNum = 0
         else:
@@ -171,7 +172,7 @@ class Subject(Base):
 
         for inc in range(count):
             tNum = maxNum + count + 1
-            self.add(dbsession, tNum, study, loc, year, creator)
+            Subject.add(dbsession, tNum, study, loc, year, creator)
 
     def update(self, obj):
         """update from dictionary"""

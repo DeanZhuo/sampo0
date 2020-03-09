@@ -43,5 +43,6 @@ setup(name='sampo',
       [console_scripts]
       sampo-run = sampo.scripts.run:main
       sampo-shell = sampo.scripts.shell:main
+      initialize_sampo_db = sampo.initialize_db:main
       """,
       )

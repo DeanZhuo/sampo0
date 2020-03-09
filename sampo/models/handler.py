@@ -42,7 +42,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         return q.all()
 
-    def get_study(self, stud):
+    def get_study(self, stud=None):
         """get study by name or all"""
 
         if stud is None:
@@ -110,8 +110,8 @@ class DBHandler(rhombus_handler.DBHandler):
 
         raise RuntimeError('ERR: unknown data type for getting Fridge')
 
-    def get_rack(self, rck=None):
-        """get rack"""
+    def get_rack(self, rck=None, frid=None, shelf=None, rackpos=None):
+        """get rack by fridge, shelf"""
 
         if rck is None:
             return self.Rack.query(self.session()).all()
@@ -119,10 +119,19 @@ class DBHandler(rhombus_handler.DBHandler):
             return self.Rack.get(rck, self.session())
         if isinstance(rck, list):
             return [self.get_rack(x) for x in rck]
+        if frid:
+            tFrd = self.get_fridge(frid=frid)
+            if shelf and rackpos:
+                qResult = self.Rack.query(self.session()).filter(self.Rack.fridge_id == tFrd).filter(
+                    self.Rack.shelf_num == shelf, self.Rack.rack_post == rackpos).first()
+            else:
+                qResult = self.Rack.query(self.session()).filter(self.Rack.fridge_id == tFrd).all()
+            if qResult: return qResult
+            return None
 
         raise RuntimeError('ERR: unknown data type for getting Rack')
 
-    def get_box(self, bx=None):
+    def get_box(self, bx=None, rack=None):
         """get box by name or all"""
 
         if bx is None:
@@ -133,10 +142,14 @@ class DBHandler(rhombus_handler.DBHandler):
             return [self.get_box(x) for x in bx]
         if isinstance(bx, str):
             return self.Box.search(bx, self.session())
+        if rack:
+            qResult = self.Box.query(self.session()).filter(self.Box.rack_id == rack).all()
+            if qResult: return qResult
+            return None
 
         raise RuntimeError('ERR: unknown data type for getting Box')
 
-    def get_boxcell(self, cell=None):
+    def get_boxcell(self, cell=None, sample=None, box=None, col=None, row=None):
         """get box cell"""
 
         if cell is None:
@@ -145,10 +158,21 @@ class DBHandler(rhombus_handler.DBHandler):
             return self.BoxCell.get(cell, self.session())
         if isinstance(cell, list):
             return [self.get_boxcell(x) for x in cell]
+        if sample:
+            return self.BoxCell.search(sample, self.session())
+        if box:
+            tBox = self.get_box(bx=box)
+            if col and row:
+                qResult = self.BoxCell.query(self.session()).filter(self.BoxCell.box_id == tBox).filter(
+                    self.BoxCell.column == col, self.BoxCell.row == row).first()
+            else:
+                qResult = self.BoxCell.query(self.session()).filter(self.BoxCell.box_id == tBox).all()
+            if qResult: return qResult
+            return None
 
         raise RuntimeError('ERR: unknown data type for getting BoxCell')
 
-    def get_takereturn(self, tr=None):
+    def get_takereturn(self, tr=None, take=False):
         """get loc by name or all"""
 
         if tr is None:
@@ -157,5 +181,7 @@ class DBHandler(rhombus_handler.DBHandler):
             return self.TakeReturn.get(tr, self.session())
         if isinstance(tr, list):
             return [self.get_takereturn(x) for x in tr]
+        if take:
+            return self.TakeReturn.query(self.session()).filter(self.TakeReturn.returned == False).all()
 
         raise RuntimeError('ERR: unknown data type for getting TakeReturn')

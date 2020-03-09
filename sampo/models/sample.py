@@ -1,8 +1,9 @@
+from sampo.models.fridge import Box
 from sqlalchemy import and_
 
 from .study import *
 
-# TODO: bulk insert, assign box
+# TODO: bulk insert
 
 
 class Sample(Base):
@@ -90,7 +91,7 @@ class Sample(Base):
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
     @staticmethod
-    def search(dbsession, samp):
+    def search(samp, dbsession):
         """search by name or label"""
 
         q = Sample.query(dbsession).filter(Sample.label == samp).first()
@@ -226,7 +227,8 @@ class Specimen(Sample):
 
         dbsession.add(spec)
 
-    def addBatchSubject(self, dbsession, study, subjectDict, creator):
+    @staticmethod
+    def addBatchSubject(dbsession, study, subjectDict, creator):
         """
             add batch specimen by subject dictionary
             subjectDict = {
@@ -246,11 +248,11 @@ class Specimen(Sample):
                 tAli = n + 1
 
                 if 'desc' in subSpec:
-                    self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
+                    Specimen.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
                              subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator,
                              subSpec["desc"])
                 else:
-                    self.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
+                    Specimen.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
                              subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator)
 
 
@@ -297,7 +299,8 @@ class Extraction(Sample):  # TODO: question: does extraction has aliquot?
 
         dbsession.add(ext)
 
-    def addBatchType(self, dbsession, extDict, creator):
+    @staticmethod
+    def addBatchType(dbsession, extDict, creator):
         """
             add batch extraction by extraction list
             extDict = {
@@ -319,11 +322,11 @@ class Extraction(Sample):  # TODO: question: does extraction has aliquot?
             study = tSpec.study_id
 
             if 'desc' in extSpec:
-                self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
+                Extraction.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
                          extSpec["storage"], tSpec, extSpec["method"], creator,
                          extSpec["desc"])
             else:
-                self.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
+                Extraction.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
                          extSpec["storage"], tSpec, extSpec["method"], creator)
 
 
@@ -335,8 +338,11 @@ def assignBox(moveDict):
                         "Sample.id" : {
                                         "fridge" : string
                                         "shelf" : int
-                                        "rack" : int
+                                        "rackpost" : int
                                         "box" : string
+                                        "type" : 0 or 1
+                                        "nRow" : int
+                                        "nCol : int
                                         "column" : string
                                         "row" : int
                                         }
@@ -350,20 +356,29 @@ def assignBox(moveDict):
         tSam = dbh.get_sample(sam=sample)
         nBox = dbh.get_box(bx=dest['box'])
 
-        if tSam.box_id is not None:
+        if nBox is None:
+            nFrd = dbh.get_fridge(frid=dest['fridge'])
+            nRack = dbh.get_rack(frid=nFrd, shelf=dest['shelf'], rackpos=dest['rackpost'])
+            Box.add(dbh.session(), dest['box'], dest['type'], nRack, dest['nRow'], dest['nCol'], False)
+            nBox = dbh.get_box(bx=dest['box'])
+
+        if tSam.box_id is not 0:
             oBox = dbh.get_box(bx=tSam.box_id)
-            if oBox.box_type != nBox.box_type:
+            if oBox.box_type != nBox.box_type or oBox.box_isFull is True:
                 retList.append(tSam)
                 continue
             if oBox.box_type == 1:
-                oCell = dest['column']  # TODO: get cell by sample
+                oCell = dbh.get_boxcell(sample=tSam)
                 oCell.sample_id = None
                 oCell.status = 'E'
 
-        nRack = dest['rack']    # TODO: get rack by fridge and shelf
-        nCell = dest['column']  # TODO: get cell by box, col, row
-        nCell.sample_id = tSam
-        nCell.status = tSam.status
+        if nBox.box_type == 1:
+            nCell = dbh.get_boxcell(box=nBox, col=dest['column'], row=dest['row'])
+            if nCell.status != 'E':
+                retList.append(tSam)
+                continue
+            nCell.sample_id = tSam
+            nCell.status = tSam.status
 
         tSam.box_id = nBox
         # TODO: update database

@@ -1,8 +1,8 @@
 from .sample import *
 
 
-# TODO: bulk add, check move destination
-# TODO: shelf = level, add isFull to rack database
+# TODO: bulk add
+# note: shelf = level
 
 
 class Fridge(Base):
@@ -111,7 +111,7 @@ class Fridge(Base):
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
     @staticmethod
-    def search(dbsession, fridge):
+    def search(fridge, dbsession):
         """search by name"""
 
         q = Fridge.query(dbsession).filter(Fridge.fridge_name == fridge).first()
@@ -125,8 +125,6 @@ class Fridge(Base):
         tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
         self.fridge_location_id = tLoc
         self.fridge_desc = desc
-
-        pass
         # TODO: update to database
 
     @staticmethod
@@ -135,8 +133,7 @@ class Fridge(Base):
 
         dbh = get_dbhandler()
         tFridge = dbh.get_fridge(frid=fridge)
-        lRacks = list()
-        # TODO: get list of racks by fridge id
+        lRacks = dbh.get_rack(frid=tFridge)
 
         for rack in lRacks:
             if rack.rack_isFull is False:
@@ -147,7 +144,7 @@ class Fridge(Base):
 class Rack(Base):
     """
     class for rack object
-    the part you can push on pull when ypu open up a fridge
+    the part you can push and pull when ypu open up a fridge
     """
 
     __tablename__ = 'racks'
@@ -209,7 +206,6 @@ class Rack(Base):
             self.fridge_id, tRack.fridge_id = tRack.fridge_id, self.fridge_id
             self.shelf_num, tRack.shelf_num = tRack.shelf_num, self.shelf_num
             self.rack_post, tRack.rack_post = tRack.rack_post, self.rack_post
-
             # TODO: update database
 
     @staticmethod
@@ -218,8 +214,7 @@ class Rack(Base):
 
         dbh = get_dbhandler()
         tRack = dbh.get_rack(rck=rack)
-        lBox = list()
-        # TODO: get list of box by rack id
+        lBox = dbh.get_box(rack=tRack)
 
         if lBox:
             for box in lBox:
@@ -263,6 +258,8 @@ class Box(Base):
         tRack = dbh.get_rack(rck=rack)
         box = Box(uuid=tUuid, box_name=name, box_type=tType, rack_id=tRack, row=row, column=col,
                   box_isFull=full)
+        if tType == 1:
+            BoxCell.addBatch(dbsession,box)
         dbsession.add(box)
 
     def update(self, obj):
@@ -287,11 +284,11 @@ class Box(Base):
         raise NotImplementedError('ERR: updating object uses dictionary object')
 
     @staticmethod
-    def search(dbsession, boxname):
+    def search(boxname, dbsession):
         """search by name"""
 
-        q = Box.query(dbsession).filter(Box.box_name == boxname).first()
-        if q: return q
+        qResult = Box.query(dbsession).filter(Box.box_name == boxname).first()
+        if qResult: return qResult
         return None
 
     def move(self, rack, row, col):
@@ -310,8 +307,7 @@ class Box(Base):
 
         dbh = get_dbhandler()
         tBox = dbh.get_box(bx=box)
-        lCells = list()
-        # TODO: get list of cells by box id
+        lCells = dbh.get_boxcell(box=tBox)
 
         for cell in lCells:
             if cell.cell_status == 'E':
@@ -350,12 +346,13 @@ class BoxCell(Base):
         cell = BoxCell(column=col, row=row, sample_id=tSam, box_id=tBox, cell_status=stat)
         dbsession.add(cell)
 
-    def addBatch(self, dbsession, box):
+    @staticmethod
+    def addBatch(dbsession, box):
         """add cell for box"""
 
         for col in range(1, 9):
             for row in range(1, 9):
-                self.add(dbsession, col, row, None, box, False)
+                BoxCell.add(dbsession, col, row, None, box, False)
 
     def update(self, obj):
         """update from dictionary"""
@@ -375,3 +372,17 @@ class BoxCell(Base):
             return self
 
         raise NotImplementedError('ERR: updating object uses dictionary object')
+
+    @staticmethod
+    def search(sample, dbsession):
+        """search by sample"""
+
+        if isinstance(sample, int) is not True:
+            dbh = get_dbhandler()
+            tSam = dbh.get_sample(sam=sample)
+        else:
+            tSam = sample
+
+        q = BoxCell.query(dbsession).filter(BoxCell.sample_id == tSam).first()
+        if q: return q
+        return None
