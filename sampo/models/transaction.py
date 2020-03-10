@@ -2,9 +2,6 @@ from .sample import *
 from datetime import date
 
 
-# TODO: bulk add, make reports
-
-
 class TakeReturn(Base):
     """
     class for take and return transaction
@@ -53,8 +50,28 @@ class TakeReturn(Base):
         for sample in sampleList:
             tSam = dbh.get_sample(sam=sample)
             tSam.status = 'N'
-            # TODO: update database
             self.add(dbsession, tSam, tUsr, date, None)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert box
+        itemlist = [ (sample, user, take, ret) ]
+        """
+
+        for item in itemlist:
+            sample, user, take, ret = item[0], item[1], item[2], item[3]
+            TakeReturn.add(dbsession, sample, user, take, ret)
+
+    def as_dict(self):
+        return dict(sample=self.sample_id, user=self.user_id, take=self.take_date, ret=self.returned)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = TakeReturn.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""
@@ -83,7 +100,8 @@ class TakeReturn(Base):
         else:
             tSam = sample
 
-        q = TakeReturn.query(dbsession).filter(TakeReturn.sample_id == tSam, TakeReturn.returned == False).first()
+        q = TakeReturn.query(dbsession).filter(TakeReturn.sample_id == tSam,
+                                               TakeReturn.returned == False).first()
         if q: return q
         return None
 
@@ -98,12 +116,11 @@ class TakeReturn(Base):
             for sample in sampleList:
                 tTrans = self.search(sample)
                 tTrans.returned = True
-                # TODO: update database
 
         Sample.changeStatus(sampleList, status)
 
 
-def sampleReport(): # TODO: not yet
+def sampleReport():
     """return list of not returned sample"""
 
     dbh = get_dbhandler()
@@ -116,6 +133,26 @@ def annualReport(dbsession, year):
     checkYear(year)
     start = date(year-1, 12, 31)
     end = date(year+1, 1, 1)
-    qSam = Sample.query(dbsession).filter(Sample.date.between(start,end)).all()
+    qResult = dbsession.query(Group.name, Study.study_name, Location.name,
+                              func.count(Subject), func.count(Sample))\
+        .outerjoin(Study, Group.id == Study.group_id)\
+        .outerjoin(Subject, Study.id == Subject.study_id)\
+        .outerjoin(Location, Location.id == Subject.location_id)\
+        .outerjoin(Sample, Subject.id == Sample.subject_id)\
+        .filter(Sample.date.between(start, end))\
+        .order_by(Group.name)\
+        .order_by(Study.study_name).all()
 
+    """
+        select groups.name, studies.study_name, location.name, count(subject), count(sample)
+        from groups 
+        join studies on groups.id = studies.group_id
+        join subjects on studies.id = subjects.study_id
+        join locations on subjects.location_id = locations.id
+        join samples on subjects.id = samples.subject_id
+        where subjects.date between(start, end)
+        sort by groups.name
+    """
+
+    return qResult
 

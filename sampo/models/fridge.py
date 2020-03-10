@@ -1,7 +1,5 @@
 from .sample import *
 
-
-# TODO: bulk add
 # note: shelf = level
 
 
@@ -35,9 +33,7 @@ class Fridge(Base):
     # TODO: check status at starting and after moving
 
     shelf = Column(types.SmallInteger, nullable=False)
-    rack = Column(types.SmallInteger, nullable=False)
-    depth_row = Column(types.SmallInteger, nullable=False)
-    depth_column = Column(types.SmallInteger, nullable=False)
+    # TODO: change db on dbdiagram.io, skpl erd, dppl table
 
     creator_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     creator = relationship(User, backref=backref('fridges'))
@@ -46,7 +42,7 @@ class Fridge(Base):
     last_user = relationship(User, backref=backref('fridges'))
 
     @staticmethod
-    def add(group, name, type, model, temp, loc, desc, full, shelf, rack, row, column,
+    def add(dbsession, group, name, type, model, temp, loc, desc, full, shelf,
             creator=None, last_user=None):
         """add a fridge"""
 
@@ -69,9 +65,36 @@ class Fridge(Base):
         tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
         fridge = Fridge(uuid=tUuid, group_name=tGName, fridge_name=name, fridge_type_id=tType,
                         fridge_model=model, temperature=temp, fridge_location_id=tLoc, fridge_desc=desc,
-                        fridge_isFull=full, shelf=shelf, rack=rack, depth_row=row, depth_column=column,
-                        creator_id=tCrt, last_user_id=tLUsr)
+                        fridge_isFull=full, shelf=shelf, creator_id=tCrt, last_user_id=tLUsr)
         dbsession.add(fridge)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert fridge
+        itemlist = [ (group, name, type, model, temperature, location, desc, isFull, shelf,
+                    creator, last_editor) ]
+        """
+
+        for item in itemlist:
+            group, name, type, model, temperature, location, desc, isFull, shelf, creator, last_editor \
+                = item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], \
+                  item[8], item[9], item[10]
+            Fridge.add(dbsession, group, name, type, model, temperature, location, desc, isFull, shelf,
+                       creator, last_editor)
+
+    def as_dict(self):
+        return dict(group=self.group_name, name=self.fridge_name, type=self.fridge_type_id,
+                    model=self.fridge_model, temperature=self.temperature, location=self.fridge_location_id,
+                    desc=self.fridge_desc, isFull=self.fridge_isFull, shelf=self.shelf,
+                    creator=self.creator_id, last_editor=self.last_user_id)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Fridge.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""
@@ -95,12 +118,6 @@ class Fridge(Base):
                 self.fridge_isFull = obj['fridge_isFull']
             if 'shelf' in obj:
                 self.shelf = obj['shelf']
-            if 'rack' in obj:
-                self.rack = obj['rack']
-            if 'depth_row' in obj:
-                self.depth_row = obj['depth_row']
-            if 'depth_column' in obj:
-                self.depth_column = obj['depth_column']
             if 'creator_id' in obj:
                 self.creator_id = obj['creator_id']
             if 'last_user_id' in obj:
@@ -125,7 +142,6 @@ class Fridge(Base):
         tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
         self.fridge_location_id = tLoc
         self.fridge_desc = desc
-        # TODO: update to database
 
     @staticmethod
     def checkFull(fridge):
@@ -173,6 +189,28 @@ class Rack(Base):
                     num_row=row, num_column=col, rack_isFull=full)
         dbsession.add(rack)
 
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert rack
+        itemlist = [ (fridge, shelf, pos, row, col, isFull) ]
+        """
+
+        for item in itemlist:
+            fridge, shelf, pos, row, col, isFull = item[0], item[1], item[2], item[3], item[4], item[5]
+            Rack.add(dbsession, fridge, shelf, pos, row, col, isFull)
+
+    def as_dict(self):
+        return dict(fridge=self.fridge_id, shelf=self.shelf_num, pos=self.rack_post,
+                    row=self.num_row, col=self.num_column, isFull=self.rack_isFull)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Rack.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
+
     def update(self, obj):
         """update from dictionary"""
 
@@ -206,7 +244,6 @@ class Rack(Base):
             self.fridge_id, tRack.fridge_id = tRack.fridge_id, self.fridge_id
             self.shelf_num, tRack.shelf_num = tRack.shelf_num, self.shelf_num
             self.rack_post, tRack.rack_post = tRack.rack_post, self.rack_post
-            # TODO: update database
 
     @staticmethod
     def checkStatus(rack):
@@ -262,6 +299,28 @@ class Box(Base):
             BoxCell.addBatch(dbsession,box)
         dbsession.add(box)
 
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert box
+        itemlist = [ (name, type, rack, row, col, isFull) ]
+        """
+
+        for item in itemlist:
+            name, type, rack, row, col, isFull = item[0], item[1], item[2], item[3], item[4], item[5]
+            Box.add(dbsession, name, type, rack, row, col, isFull)
+
+    def as_dict(self):
+        return dict(name=self.box_name, type=self.box_type, rack=self.rack_id,
+                    row=self.row, col=self.column, isFull=self.box_isFull)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Box.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
+
     def update(self, obj):
         """update from dictionary"""
 
@@ -299,7 +358,6 @@ class Box(Base):
         self.rack_id = tRack
         self.row = row
         self.column = col
-        # TODO: update database
 
     @staticmethod
     def checkFull(box):
@@ -353,6 +411,28 @@ class BoxCell(Base):
         for col in range(1, 9):
             for row in range(1, 9):
                 BoxCell.add(dbsession, col, row, None, box, False)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert box
+        itemlist = [ (col, row, sample, box, status) ]
+        """
+
+        for item in itemlist:
+            col, row, sample, box, status = item[0], item[1], item[2], item[3], item[4]
+            BoxCell.add(dbsession, col, row, sample, box, status)
+
+    def as_dict(self):
+        return dict(col=self.column, row=self.row, sample=self.sample_id,
+                    box=self.box_id, status=self.cell_status)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = BoxCell.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""

@@ -122,8 +122,8 @@ class DBHandler(rhombus_handler.DBHandler):
         if frid:
             tFrd = self.get_fridge(frid=frid)
             if shelf and rackpos:
-                qResult = self.Rack.query(self.session()).filter(self.Rack.fridge_id == tFrd).filter(
-                    self.Rack.shelf_num == shelf, self.Rack.rack_post == rackpos).first()
+                qResult = self.Rack.query(self.session()).filter(self.Rack.fridge_id == tFrd)\
+                    .filter(self.Rack.shelf_num == shelf, self.Rack.rack_post == rackpos).first()
             else:
                 qResult = self.Rack.query(self.session()).filter(self.Rack.fridge_id == tFrd).all()
             if qResult: return qResult
@@ -163,8 +163,8 @@ class DBHandler(rhombus_handler.DBHandler):
         if box:
             tBox = self.get_box(bx=box)
             if col and row:
-                qResult = self.BoxCell.query(self.session()).filter(self.BoxCell.box_id == tBox).filter(
-                    self.BoxCell.column == col, self.BoxCell.row == row).first()
+                qResult = self.BoxCell.query(self.session()).filter(self.BoxCell.box_id == tBox)\
+                    .filter(self.BoxCell.column == col, self.BoxCell.row == row).first()
             else:
                 qResult = self.BoxCell.query(self.session()).filter(self.BoxCell.box_id == tBox).all()
             if qResult: return qResult

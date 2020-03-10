@@ -15,7 +15,7 @@ requires = [
     'pyramid_tm',
     'SQLAlchemy',
     'transaction',
-    'rhombus'
+    'rhombus', 'PyYAML'
     ]
 
 setup(name='sampo',

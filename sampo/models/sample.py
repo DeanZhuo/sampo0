@@ -3,8 +3,6 @@ from sqlalchemy import and_
 
 from .study import *
 
-# TODO: bulk insert
-
 
 class Sample(Base):
     """
@@ -44,6 +42,40 @@ class Sample(Base):
         'polymorphic_identity': 'sample',
         'polymorphic_on': spext
     }
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert study
+        itemlist = [ (box, spext, study, subject, type, label, date, storage, creator, desc, status,
+                        aliquot, aliquot_total, spec_source, spec_id, ext_method) ]
+        """
+
+        for item in itemlist:
+            box, spext, study, subject, type, label, date, storage, creator, \
+            desc, status, aliquot, aliquot_total, spec_source, spec_id, ext_method\
+                = item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8], \
+                  item[9], item[10], item[11], item[12], item[13], item[14], item[15]
+            if spext.upper() == 'SPECIMEN':
+                Specimen.add(dbsession, study, subject, type, date, storage,
+                             aliquot, aliquot_total, spec_source, creator, desc, box, status)
+            else:
+                Extraction.add(dbsession, study, subject, type, date, storage, spec_source,
+                               ext_method, creator, desc, box, status)
+
+    def as_dict(self):
+        return dict(box=self.box_id, spext=self.spext, study=self.study_id, subject=self.study_id,
+                    type=self.type_id, label=self.label, date=self.date, storage=self.storage_id,
+                    creator=self.creator_id, desc=self.desc, status=self.status,
+                    aliquot=self.aliquot, aliquot_total=self.aliquot_total, spec_source=self.spec_source_id,
+                    spec_id=self.spec_id, ext_method=self.ext_method_id)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Study.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""
@@ -142,7 +174,6 @@ class Sample(Base):
         for sample in sampleList:
             tSam = dbh.get_sample(sam=sample)
             tSam.status = status
-            # TODO: update database
 
 
 def getSpecLabel(dbsession, study, subject, type, aliquot):
@@ -381,7 +412,6 @@ def assignBox(moveDict):
             nCell.status = tSam.status
 
         tSam.box_id = nBox
-        # TODO: update database
 
     return retList
 

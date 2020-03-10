@@ -5,9 +5,7 @@ from rhombus.models.user import User, Group
 from sqlalchemy.orm import backref
 from sqlalchemy.sql.expression import func
 import math
-
-
-# TODO: bulk insert
+import yaml
 
 
 class Study(Base):
@@ -28,7 +26,7 @@ class Study(Base):
     study_number = Column(types.String(4), nullable=False, unique=True)
 
     creator_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
-    user = relationship(User, backref=backref('studies'))
+    creator = relationship(User, backref=backref('studies'))
 
     @staticmethod
     def add(dbsession, group, name, num, creator=None):
@@ -45,6 +43,28 @@ class Study(Base):
         study = Study(uuid=tUuid, group_id=tGroup, study_name=name, study_number=num.upper(),
                       creator_id=tCrt)
         dbsession.add(study)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert study
+        itemlist = [ (group_id, study_name, study_number, creator_id) ]
+        """
+
+        for item in itemlist:
+            group_id, study_name, study_number, creator_id = item[0], item[1], item[2], item[3]
+            Study.add(dbsession, group_id, study_name, study_number, creator_id)
+
+    def as_dict(self):
+        return dict(group_id=self.group_id, study_name=self.study_name,
+                    study_number=self.study_number, creator_id=self.creator_id)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Study.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""
@@ -89,6 +109,27 @@ class Location(Base):
 
         loc = Location(name=name)
         dbsession.add(loc)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert locations
+        itemlist = [ (name) ]
+        """
+
+        for item in itemlist:
+            name = item
+            Location.add(dbsession, name)
+
+    def as_dict(self):
+        return dict(name=self.name)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Location.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     @staticmethod
     def search(locnm, dbsession):
@@ -173,6 +214,28 @@ class Subject(Base):
         for inc in range(count):
             tNum = maxNum + count + 1
             Subject.add(dbsession, tNum, study, loc, year, creator)
+
+    @staticmethod
+    def bulk_insert(itemlist, dbsession):
+        """
+        bulk insert subject
+        itemlist = [ (number, study, location, year, creator) ]
+        """
+
+        for item in itemlist:
+            number, study, location, year, creator = item[0], item[1], item[2], item[3], item[4]
+            Subject.add(dbsession, number, study, location, year, creator)
+
+    def as_dict(self):
+        return dict(number=self.subject_number, study=self.study_id, location=self.location_id,
+                    year=self.year, creator=self.creator_id)
+
+    @staticmethod
+    def dump(out, query=None):
+        """dump to yaml"""
+        if query is None:
+            query = Subject.query()
+        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
 
     def update(self, obj):
         """update from dictionary"""
