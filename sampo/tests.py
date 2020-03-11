@@ -4,7 +4,7 @@ import transaction
 from pyramid import testing
 
 from .models import DBSession
-
+# Not set. Configure according to classes and views
 
 class TestMyViewSuccessCondition(unittest.TestCase):
     def setUp(self):

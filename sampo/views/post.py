@@ -164,6 +164,8 @@ def list_posts(request):
     table_posts.add(body)
 
     content.add(table_posts)
+    content.add(a('SAMPO MENU', class_='btn btn-success', href=request.route_url('sampo-home')))
+    # TODO: home route
     return content
 
 

@@ -117,6 +117,8 @@ class Location(Base):
         itemlist = [ (name) ]
         """
 
+        study = Study()
+
         for item in itemlist:
             name = item
             Location.add(dbsession, name)
@@ -165,7 +167,7 @@ class Subject(Base):
     creator = relationship(User, backref=backref('subjects'))
 
     @staticmethod
-    def getLastSub(study, loc, year):
+    def getSub(dbsession, study, loc, year, last=False):
         """get the last number from a study"""
 
         if checkYear(year) is False:
@@ -176,9 +178,14 @@ class Subject(Base):
         tStu = dbh.get_study(stud=study)
         tLoc = dbh.get_location(loc=loc)
 
-        qResult = Subject.query(func.max(Subject.subject_number)). \
-            filter(Subject.study_id == tStu).filter(Subject.location_id == tLoc). \
-            filter(Subject.year == year).first()
+        if last:
+            qResult = Subject.query(dbsession). \
+                filter(Subject.study_id == tStu).filter(Subject.location_id == tLoc). \
+                filter(Subject.year == year).order_by(Subject.id.desc()).first()
+        else:
+            qResult = Subject.query(dbsession). \
+                filter(Subject.study_id == tStu).filter(Subject.location_id == tLoc). \
+                filter(Subject.year == year).all()
 
         if qResult: return qResult
         return None
@@ -205,7 +212,7 @@ class Subject(Base):
     def addBatch(dbsession, count, study, loc, year, creator):
         """add batch subjects"""
 
-        sub = Subject.getLastSub(study, loc, year)
+        sub = Subject.getSub(dbsession, study, loc, year)
         if sub is None:
             maxNum = 0
         else:
