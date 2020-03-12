@@ -3,7 +3,6 @@ from rhombus.models.core import *
 from rhombus.models.user import User, Group
 
 from sqlalchemy.orm import backref
-from sqlalchemy.sql.expression import func
 import math
 import yaml
 
@@ -56,12 +55,15 @@ class Study(Base):
             Study.add(dbsession, group_id, study_name, study_number, creator_id)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(group_id=self.group_id, study_name=self.study_name,
                     study_number=self.study_number, creator_id=self.creator_id)
 
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Study.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
@@ -124,11 +126,14 @@ class Location(Base):
             Location.add(dbsession, name)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(name=self.name)
 
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Location.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
@@ -168,7 +173,7 @@ class Subject(Base):
 
     @staticmethod
     def getSub(dbsession, study, loc, year, last=False):
-        """get the last number from a study"""
+        """get the last subject or every subject from the study with the location and year variable"""
 
         if checkYear(year) is False:
             RuntimeError('FATAL ERR: year not valid! 1899 < year < 2999, 4 digits format!')
@@ -234,12 +239,15 @@ class Subject(Base):
             Subject.add(dbsession, number, study, location, year, creator)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(number=self.subject_number, study=self.study_id, location=self.location_id,
                     year=self.year, creator=self.creator_id)
 
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Subject.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)

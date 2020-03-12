@@ -47,6 +47,7 @@ def includeme(config):
     config.add_view('sampo.views.post.PostViewer', attr='index', route_name='post-view')
 
     # add additional routes and views here
+    # TODO: add views and routes
 
 
 def get_userid_func():

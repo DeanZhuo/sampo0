@@ -64,15 +64,18 @@ class Sample(Base):
                                ext_method, creator, desc, box, status)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(box=self.box_id, spext=self.spext, study=self.study_id, subject=self.study_id,
                     type=self.type_id, label=self.label, date=self.date, storage=self.storage_id,
-                    creator=self.creator_id, desc=self.desc, status=self.status,
+                    creator=self.creattBoxor_id, desc=self.desc, status=self.status,
                     aliquot=self.aliquot, aliquot_total=self.aliquot_total, spec_source=self.spec_source_id,
                     spec_id=self.spec_id, ext_method=self.ext_method_id)
 
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Study.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
@@ -124,7 +127,7 @@ class Sample(Base):
 
     @staticmethod
     def search(samp, dbsession):
-        """search by name or label"""
+        """search by label"""
 
         q = Sample.query(dbsession).filter(Sample.label == samp).first()
         if q: return q
@@ -155,7 +158,7 @@ class Sample(Base):
 
     @staticmethod
     def checkStatus(sampleList, status):
-        """check all sample availability from list, return a list"""
+        """check all sample availability from list, return a list with different status"""
 
         dbh = get_dbhandler()
         retList = list()
@@ -168,7 +171,7 @@ class Sample(Base):
 
     @staticmethod
     def changeStatus(sampleList, status):
-        """check all sample availability from list, return a list"""
+        """change all sample availability from list"""
 
         dbh = get_dbhandler()
         for sample in sampleList:

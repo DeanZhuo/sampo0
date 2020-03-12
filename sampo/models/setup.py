@@ -8,7 +8,7 @@ def setup(dbh):
 # add additional initial data here
 
 
-ek_initlist = [
+ek_initlist = [     # TODO: not yet
     ('@SYSNAME', 'System names',
      [
          ('sampo'.upper(), 'sampo'),

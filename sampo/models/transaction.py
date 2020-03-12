@@ -37,7 +37,8 @@ class TakeReturn(Base):
         trans = TakeReturn(uuid=tUuid, sample_id=tSam, user_id=tUsr, take_date=date, returned=ret)
         dbsession.add(trans)
 
-    def addBatch(self, dbsession, sampleList, user, date):
+    @staticmethod
+    def addBatch(dbsession, sampleList, user, date):
         """add transaction by list"""
 
         dbh = get_dbhandler()
@@ -50,7 +51,7 @@ class TakeReturn(Base):
         for sample in sampleList:
             tSam = dbh.get_sample(sam=sample)
             tSam.status = 'N'
-            self.add(dbsession, tSam, tUsr, date, None)
+            TakeReturn.add(dbsession, tSam, tUsr, date, None)
 
     @staticmethod
     def bulk_insert(itemlist, dbsession):
@@ -64,6 +65,8 @@ class TakeReturn(Base):
             TakeReturn.add(dbsession, sample, user, take, ret)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(sample=self.sample_id, user=self.user_id, take=self.take_date, ret=self.returned)
 
     @staticmethod
@@ -105,16 +108,17 @@ class TakeReturn(Base):
         if q: return q
         return None
 
-    def transaction(self, dbsession, sampleList, user, date, type):
+    @staticmethod
+    def transaction(dbsession, sampleList, user, date, type):
         """take and return transaction"""
 
-        if type == 'Take':
+        if type == 'take':
             status = 'N'
-            self.addBatch(dbsession, sampleList, user, date)
+            TakeReturn.addBatch(dbsession, sampleList, user, date)
         else:
             status = 'A'
             for sample in sampleList:
-                tTrans = self.search(sample)
+                tTrans = TakeReturn.search(sample)
                 tTrans.returned = True
 
         Sample.changeStatus(sampleList, status)

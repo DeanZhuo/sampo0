@@ -83,7 +83,7 @@ class DBHandler(rhombus_handler.DBHandler):
         raise RuntimeError('ERR: unknown data type for getting Subject')
 
     def get_sample(self, sam=None):
-        """get sample by name or all"""
+        """get sample by label or all"""
 
         if sam is None:
             return self.Sample.query(self.session()).all()
@@ -111,7 +111,7 @@ class DBHandler(rhombus_handler.DBHandler):
         raise RuntimeError('ERR: unknown data type for getting Fridge')
 
     def get_rack(self, rck=None, frid=None, shelf=None, rackpos=None):
-        """get rack by fridge, shelf"""
+        """get rack by fridge, shelf, or all"""
 
         if rck is None:
             return self.Rack.query(self.session()).all()
@@ -132,7 +132,7 @@ class DBHandler(rhombus_handler.DBHandler):
         raise RuntimeError('ERR: unknown data type for getting Rack')
 
     def get_box(self, bx=None, rack=None):
-        """get box by name or all"""
+        """get box by name, rack, or all"""
 
         if bx is None:
             return self.Box.query(self.session()).all()
@@ -150,7 +150,7 @@ class DBHandler(rhombus_handler.DBHandler):
         raise RuntimeError('ERR: unknown data type for getting Box')
 
     def get_boxcell(self, cell=None, sample=None, box=None, col=None, row=None):
-        """get box cell"""
+        """get box cell by sample, box, position, or all"""
 
         if cell is None:
             return self.BoxCell.query(self.session()).all()
@@ -173,7 +173,7 @@ class DBHandler(rhombus_handler.DBHandler):
         raise RuntimeError('ERR: unknown data type for getting BoxCell')
 
     def get_takereturn(self, tr=None, take=False):
-        """get loc by name or all"""
+        """get loc by name, not returned (yet), or all"""
 
         if tr is None:
             return self.TakeReturn.query(self.session()).all()

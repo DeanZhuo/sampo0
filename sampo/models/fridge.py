@@ -84,6 +84,8 @@ class Fridge(Base):
                        creator, last_editor)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(group=self.group_name, name=self.fridge_name, type=self.fridge_type_id,
                     model=self.fridge_model, temperature=self.temperature, location=self.fridge_location_id,
                     desc=self.fridge_desc, isFull=self.fridge_isFull, shelf=self.shelf,
@@ -92,6 +94,7 @@ class Fridge(Base):
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Fridge.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
@@ -136,20 +139,18 @@ class Fridge(Base):
         return None
 
     def edit(self, dbsession, temp, loc, desc):
-        """edit fidge"""
+        """edit fridge"""
 
         self.temperature = temp
         tLoc = EK.getid(loc, dbsession, grp='@FRIDGELOC')
         self.fridge_location_id = tLoc
         self.fridge_desc = desc
 
-    @staticmethod
-    def checkFull(fridge):
+    def checkFull(self):
         """check fridge status"""
 
         dbh = get_dbhandler()
-        tFridge = dbh.get_fridge(frid=fridge)
-        lRacks = dbh.get_rack(frid=tFridge)
+        lRacks = dbh.get_rack(frid=self.id)
 
         for rack in lRacks:
             if rack.rack_isFull is False:
@@ -201,12 +202,15 @@ class Rack(Base):
             Rack.add(dbsession, fridge, shelf, pos, row, col, isFull)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(fridge=self.fridge_id, shelf=self.shelf_num, pos=self.rack_post,
                     row=self.num_row, col=self.num_column, isFull=self.rack_isFull)
 
     @staticmethod
     def dump(out, query=None):
         """dump to yaml"""
+
         if query is None:
             query = Rack.query()
         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
@@ -237,21 +241,22 @@ class Rack(Base):
 
         dbh = get_dbhandler()
         tRack = dbh.get_rack(rck=rack)
-        if self.checkStatus(tRack) is not 'empty':
-            return ''
+        if rack.checkStatus() is not 'empty':
+            return 'Fail, destination not Empty'
 
         if self.num_row == tRack.shelf_num and self.num_column == tRack.num_column:
             self.fridge_id, tRack.fridge_id = tRack.fridge_id, self.fridge_id
             self.shelf_num, tRack.shelf_num = tRack.shelf_num, self.shelf_num
             self.rack_post, tRack.rack_post = tRack.rack_post, self.rack_post
+            return 'Success'
 
-    @staticmethod
-    def checkStatus(rack):
+        return 'Failed'
+
+    def checkStatus(self):
         """check rack status"""
 
         dbh = get_dbhandler()
-        tRack = dbh.get_rack(rck=rack)
-        lBox = dbh.get_box(rack=tRack)
+        lBox = dbh.get_box(rack=self.id)
 
         if lBox:
             for box in lBox:
@@ -359,13 +364,11 @@ class Box(Base):
         self.row = row
         self.column = col
 
-    @staticmethod
-    def checkFull(box):
+    def checkFull(self):
         """check box status"""
 
         dbh = get_dbhandler()
-        tBox = dbh.get_box(bx=box)
-        lCells = dbh.get_boxcell(box=tBox)
+        lCells = dbh.get_boxcell(box=self.id)
 
         for cell in lCells:
             if cell.cell_status == 'E':
@@ -424,6 +427,8 @@ class BoxCell(Base):
             BoxCell.add(dbsession, col, row, sample, box, status)
 
     def as_dict(self):
+        """return as python dictionary"""
+
         return dict(col=self.column, row=self.row, sample=self.sample_id,
                     box=self.box_id, status=self.cell_status)
 

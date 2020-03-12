@@ -1,7 +1,5 @@
 from sampo.views import *
-
 from rhombus.views.home import login as rb_login, logout as rb_logout
-
 from .post import list_posts
 
 
@@ -12,14 +10,12 @@ def index(request):
                               }, request=request
                               )
 
-def home(request):  # TODO: not yet
-    content = div()
 
-    return render_to_response('sampo:templates/generic_page.mako',  # TODO: add sampo simple and bar template
-                              {
-                                  'html': list_posts(request),
-                              }, request=request
-                              )
+def home(request):
+    """return home page"""
+
+    return render_to_response('sampo:templates/generic_page.mako', {}, request=request)
+# TODO: add sampo home, simple and bar template
 
 
 def login(request):

@@ -1,9 +1,7 @@
-from datetime import datetime as time
-
 from sampo.views import *
 from rhombus.lib.utils import get_dbhandler
 
-# TODO add route, revise mock up
+# TODO add route, revise add and select mock up
 
 
 class StudyViewer(object):
@@ -57,7 +55,7 @@ class StudyViewer(object):
                            static=static),
                 input_select(name='location_id', label='Location',                                  # no
                              options=[(l.id, l.name) for l in dbh.get_location()]),
-                input_text(name='study_year', label='Year', value=time.now().year),                 # no
+                literal('<input type="number" name="study_year" min="1899" max="2999">'),           # no
                 input_text(name='new_sub', label='Subject (New)', value=0),                         # no
             ),
             fieldset(
@@ -86,15 +84,16 @@ class StudyViewer(object):
                         ])
                     ]
                 ]
-                fieldset(
-                    custom_submit_bar(('Subject', 'save')).set_hide(False).set_offset(2)
-                )
-            )
+            ),
+            fieldset(
+                custom_submit_bar(('Subject', 'save')).set_hide(False).set_offset(2)
+            ),
         )
         return eform
 
     @m_roles(PUBLIC)            # TODO: state role
     def add_study(self):
+        """show add study page if GET and process at POST"""
         req = self.request
         dbh = self.dbh
         study = dbh.Study()
@@ -102,7 +101,7 @@ class StudyViewer(object):
         if req.method == 'GET':
             content = div()
             content.add(self.study_form(study))
-            return render_to_response("sampo:templates/generics_page.mako",
+            return render_to_response("sampo:templates/generics_page.mako",     # TODO: simple template
                                       {'html': content,
                                        }, request=req
                                       )
@@ -120,6 +119,7 @@ class StudyViewer(object):
 
     @m_roles(PUBLIC)  # TODO: state role
     def select_study(self):
+        """show select study page if GET and process at POST"""
         req = self.request
         dbh = self.dbh
         study = dbh.Study()
@@ -127,7 +127,7 @@ class StudyViewer(object):
         if req.method == 'GET':
             content = div()
             content.add(self.study_form(study))
-            return render_to_response("sampo:templates/generics_page.mako",
+            return render_to_response("sampo:templates/generics_page.mako",     # TODO: simple template
                                       {'html': content,
                                        }, request=req
                                       )
@@ -140,7 +140,8 @@ class StudyViewer(object):
                              study=study_d['id'], loc=study_d['location'], year=study_d['year'])
 
     @m_roles(PUBLIC)    # TODO: state role
-    def select_subject(self):       # TODO: not yet
+    def select_subject(self):
+        """show select subject page if GET and process at POST"""
         req = self.request
         dbh = self.dbh
 
@@ -148,10 +149,10 @@ class StudyViewer(object):
             subjectList = dbh.Subject.getSub(dbh.session(), req.study, req.loc, req.year, last=True)
             content = div()
             content.add(self.subject_form(subjectList))
-            return render_to_response("sampo:templates/generics_page.mako",
+            return render_to_response("sampo:templates/generics_page.mako",     # TODO: simple template
                                       {'html': content,
                                        }, request=req
                                       )
         elif req.POST:
             subject_l = self.parse_form_subject(req.POST)
-            return HTTPFound(location='/', subjects=subject_l) # TODO: select sample page
+            return HTTPFound(location='/', subjects=subject_l)      # TODO: select sample page
