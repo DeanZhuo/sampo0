@@ -13,6 +13,8 @@ class DBHandler(rhombus_handler.DBHandler):
     Location = study.Location
     Subject = study.Subject
     Sample = sample.Sample
+    Specimen = sample.Specimen
+    Extraction = sample.Extraction
     Fridge = fridge.Fridge
     Rack = fridge.Rack
     Box = fridge.Box

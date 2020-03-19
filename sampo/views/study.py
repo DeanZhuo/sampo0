@@ -1,5 +1,4 @@
 from sampo.views import *
-from rhombus.lib.utils import get_dbhandler
 
 # TODO add route, revise add and select mock up
 
@@ -26,7 +25,7 @@ class StudyViewer(object):
         return retd
 
     @staticmethod
-    def parse_form_subject(formd):   # TODO: Not yet
+    def parse_form_subject(formd):   # TODO: Not sure
         """get data from subject form"""
 
         retlist = list()
@@ -34,8 +33,8 @@ class StudyViewer(object):
         # if formd is a list
         for d in formd:
             if d['amount'] != 0 or d['amount'] != '':
-                retdict['sub'] = d['subject_number']
-                retdict['amount'] = d['amount']
+                retdict['subject'] = int(d['subject'])
+                retdict['amount'] = int(d['amount'])
                 retlist.append(retdict)
         return retlist
 
@@ -64,22 +63,23 @@ class StudyViewer(object):
         )
         return eform
 
-    def subject_form(self, subjectList):    # TODO: Not yet
+    @staticmethod
+    def subject_form(subjectList):
         """HTML subject selection form"""
 
-        dbh = self.dbh
         eform = form(name='subject', method=POST)
         eform.add(
             fieldset(
                 table()[
                     thead()[
-                        th('Subject'), th('Type(s) Amount')
+                        th('', style="width: 2em;"), th('Subject'), th('Type(s) Amount')
                     ],
                     tbody()[
                         tuple([
                             tr()[
-                                td('%s' % subject.subject_number, name='subject_number'),
-                                td(literal('<input type="text" name="amount">'))
+                                td(input_hidden(name='subject', value=subject.id)),
+                                td('%s' % subject.subject_number,),
+                                td(literal('<input type="number" name="amount">'))
                             ] for subject in subjectList
                         ])
                     ]
@@ -155,4 +155,5 @@ class StudyViewer(object):
                                       )
         elif req.POST:
             subject_l = self.parse_form_subject(req.POST)
-            return HTTPFound(location='/', subjects=subject_l)      # TODO: select sample page
+            return HTTPFound(location='/', subjects=subject_l, study=req.study, year=req.year)
+            # TODO: select sample page

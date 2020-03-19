@@ -1,3 +1,5 @@
+from sqlalchemy import func
+
 from .sample import *
 from datetime import date
 
@@ -123,40 +125,40 @@ class TakeReturn(Base):
 
         Sample.changeStatus(sampleList, status)
 
+    @staticmethod
+    def sampleReport():
+        """return list of not returned sample"""
 
-def sampleReport():
-    """return list of not returned sample"""
+        dbh = get_dbhandler()
+        return dbh.get_takereturn(take=True)
 
-    dbh = get_dbhandler()
-    return dbh.get_takereturn(take=True)
+    @staticmethod
+    def annualReport(dbsession, year):
+        """return annual report by year"""
 
+        checkYear(year)
+        start = date(year-1, 12, 31)
+        end = date(year+1, 1, 1)
+        qResult = dbsession.query(Group.name, Study.study_name, Location.name,
+                                  func.count(Subject), func.count(Sample))\
+            .outerjoin(Study, Group.id == Study.group_id)\
+            .outerjoin(Subject, Study.id == Subject.study_id)\
+            .outerjoin(Location, Location.id == Subject.location_id)\
+            .outerjoin(Sample, Subject.id == Sample.subject_id)\
+            .filter(Sample.date.between(start, end))\
+            .order_by(Group.name)\
+            .order_by(Study.study_name).all()
 
-def annualReport(dbsession, year):
-    """return annual report by year"""
+        """
+            select groups.name, studies.study_name, location.name, count(subject), count(sample)
+            from groups 
+            join studies on groups.id = studies.group_id
+            join subjects on studies.id = subjects.study_id
+            join locations on subjects.location_id = locations.id
+            join samples on subjects.id = samples.subject_id
+            where subjects.date between(start, end)
+            sort by groups.name
+        """
 
-    checkYear(year)
-    start = date(year-1, 12, 31)
-    end = date(year+1, 1, 1)
-    qResult = dbsession.query(Group.name, Study.study_name, Location.name,
-                              func.count(Subject), func.count(Sample))\
-        .outerjoin(Study, Group.id == Study.group_id)\
-        .outerjoin(Subject, Study.id == Subject.study_id)\
-        .outerjoin(Location, Location.id == Subject.location_id)\
-        .outerjoin(Sample, Subject.id == Sample.subject_id)\
-        .filter(Sample.date.between(start, end))\
-        .order_by(Group.name)\
-        .order_by(Study.study_name).all()
-
-    """
-        select groups.name, studies.study_name, location.name, count(subject), count(sample)
-        from groups 
-        join studies on groups.id = studies.group_id
-        join subjects on studies.id = subjects.study_id
-        join locations on subjects.location_id = locations.id
-        join samples on subjects.id = samples.subject_id
-        where subjects.date between(start, end)
-        sort by groups.name
-    """
-
-    return qResult
+        return qResult
 

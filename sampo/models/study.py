@@ -119,8 +119,6 @@ class Location(Base):
         itemlist = [ (name) ]
         """
 
-        study = Study()
-
         for item in itemlist:
             name = item
             Location.add(dbsession, name)

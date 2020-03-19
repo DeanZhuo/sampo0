@@ -53,7 +53,7 @@ class Sample(Base):
 
         for item in itemlist:
             box, spext, study, subject, type, label, date, storage, creator, \
-            desc, status, aliquot, aliquot_total, spec_source, spec_id, ext_method\
+                desc, status, aliquot, aliquot_total, spec_source, spec_id, ext_method \
                 = item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8], \
                   item[9], item[10], item[11], item[12], item[13], item[14], item[15]
             if spext.upper() == 'SPECIMEN':
@@ -178,6 +178,78 @@ class Sample(Base):
             tSam = dbh.get_sample(sam=sample)
             tSam.status = status
 
+    def getPostition(self):
+        """get position (complete address) of a sample"""
+
+        dbh = get_dbhandler()
+        tBox = dbh.get_box(bx=self.box_id)
+        tRck = dbh.get_rack(rck=tBox.rack_id)
+        tFrd = dbh.get_fridge(frid=tRck.fridge_id)
+
+        position = tFrd.fridge_name + ' Shelf ' + str(tRck.shelf_num) + ' Rack ' + str(tRck.rack_post) + ', ' \
+                   + tBox.box_name
+
+        if tBox.box_type == 1:
+            tCel = dbh.get_boxcell(sample=self.id)
+            position += '\n Column ' + tCel.column + ' Row ' + str(tCel.row)
+
+        return position
+
+    @staticmethod
+    def assignBox(moveDict):
+        """
+            move specimen and extraction according to dictionary.
+            can only be moved to similar box type.
+            moveDict = {
+                            "Sample.id" : {
+                                            "fridge" : string
+                                            "shelf" : int
+                                            "rackpost" : int
+                                            "box" : string
+                                            "type" : 0 or 1
+                                            "nRow" : int
+                                            "nCol : int
+                                            "column" : string
+                                            "row" : int
+                                            }
+                        }
+        """
+
+        retList = list()
+        dbh = get_dbhandler()
+
+        for sample, dest in moveDict:
+            tSam = dbh.get_sample(sam=sample)
+            nBox = dbh.get_box(bx=dest['box'])
+
+            if nBox is None:
+                nFrd = dbh.get_fridge(frid=dest['fridge'])
+                nRack = dbh.get_rack(frid=nFrd, shelf=dest['shelf'], rackpos=dest['rackpost'])
+                Box.add(dbh.session(), dest['box'], dest['type'], nRack, dest['nRow'], dest['nCol'], False)
+                nBox = dbh.get_box(bx=dest['box'])
+
+            if tSam.box_id is not 0:
+                oBox = dbh.get_box(bx=tSam.box_id)
+                if oBox.box_type != nBox.box_type or oBox.box_isFull is True:
+                    retList.append(tSam)
+                    continue
+                if oBox.box_type == 1:
+                    oCell = dbh.get_boxcell(sample=tSam)
+                    oCell.sample_id = None
+                    oCell.status = 'E'
+
+            if nBox.box_type == 1:
+                nCell = dbh.get_boxcell(box=nBox, col=dest['column'], row=dest['row'])
+                if nCell.status != 'E' or tSam.storage_id != 1:     # 1 is for cups which fit in the grid
+                    retList.append(tSam)
+                    continue
+                nCell.sample_id = tSam
+                nCell.status = tSam.status
+
+            tSam.box_id = nBox
+
+        return retList
+
 
 def getSpecLabel(dbsession, study, subject, type, aliquot):
     """make label for specimen"""
@@ -283,11 +355,11 @@ class Specimen(Sample):
 
                 if 'desc' in subSpec:
                     Specimen.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
-                             subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator,
-                             subSpec["desc"])
+                                 subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator,
+                                 subSpec["desc"])
                 else:
                     Specimen.add(dbsession, study, subject, subSpec["type"], subSpec["date"],
-                             subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator)
+                                 subSpec["storage"], tAli, subSpec["aliquot"], subSpec["source"], creator)
 
 
 class Extraction(Sample):  # TODO: question: does extraction has aliquot?
@@ -334,7 +406,7 @@ class Extraction(Sample):  # TODO: question: does extraction has aliquot?
         dbsession.add(ext)
 
     @staticmethod
-    def addBatchType(dbsession, extDict, creator):
+    def addBatchType(dbsession, extDict):
         """
             add batch extraction by extraction list
             extDict = {
@@ -357,64 +429,8 @@ class Extraction(Sample):  # TODO: question: does extraction has aliquot?
 
             if 'desc' in extSpec:
                 Extraction.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
-                         extSpec["storage"], tSpec, extSpec["method"], creator,
-                         extSpec["desc"])
+                               extSpec["storage"], tSpec, extSpec["method"],
+                               extSpec["desc"])
             else:
                 Extraction.add(dbsession, study, subject, extSpec["type"], extSpec["date"],
-                         extSpec["storage"], tSpec, extSpec["method"], creator)
-
-
-def assignBox(moveDict):
-    """
-        move specimen and extraction according to dictionary.
-        can only be moved to similar box type.
-        moveDict = {
-                        "Sample.id" : {
-                                        "fridge" : string
-                                        "shelf" : int
-                                        "rackpost" : int
-                                        "box" : string
-                                        "type" : 0 or 1
-                                        "nRow" : int
-                                        "nCol : int
-                                        "column" : string
-                                        "row" : int
-                                        }
-                    }
-    """
-
-    retList = list()
-    dbh = get_dbhandler()
-
-    for sample, dest in moveDict:
-        tSam = dbh.get_sample(sam=sample)
-        nBox = dbh.get_box(bx=dest['box'])
-
-        if nBox is None:
-            nFrd = dbh.get_fridge(frid=dest['fridge'])
-            nRack = dbh.get_rack(frid=nFrd, shelf=dest['shelf'], rackpos=dest['rackpost'])
-            Box.add(dbh.session(), dest['box'], dest['type'], nRack, dest['nRow'], dest['nCol'], False)
-            nBox = dbh.get_box(bx=dest['box'])
-
-        if tSam.box_id is not 0:
-            oBox = dbh.get_box(bx=tSam.box_id)
-            if oBox.box_type != nBox.box_type or oBox.box_isFull is True:
-                retList.append(tSam)
-                continue
-            if oBox.box_type == 1:
-                oCell = dbh.get_boxcell(sample=tSam)
-                oCell.sample_id = None
-                oCell.status = 'E'
-
-        if nBox.box_type == 1:
-            nCell = dbh.get_boxcell(box=nBox, col=dest['column'], row=dest['row'])
-            if nCell.status != 'E':
-                retList.append(tSam)
-                continue
-            nCell.sample_id = tSam
-            nCell.status = tSam.status
-
-        tSam.box_id = nBox
-
-    return retList
-
+                               extSpec["storage"], tSpec, extSpec["method"])

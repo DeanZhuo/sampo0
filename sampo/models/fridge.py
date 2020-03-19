@@ -33,7 +33,7 @@ class Fridge(Base):
     # TODO: check status at starting and after moving
 
     shelf = Column(types.SmallInteger, nullable=False)
-    # TODO: change db on dbdiagram.io, skpl erd, dppl table
+    # TODO: change db erd, deleted some variable
 
     creator_id = Column(types.Integer, ForeignKey('users.id'), nullable=False)
     creator = relationship(User, backref=backref('fridges'))
@@ -385,8 +385,8 @@ class BoxCell(Base):
     __tablename__ = 'box_cells'
 
     id = Column(types.Integer, Sequence('boxcell_seq_id', optional=True), primary_key=True)
-    column = Column(types.SmallInteger, nullable=False)
-    row = Column(types.String(1), nullable=False)
+    column = Column(types.String(1), nullable=False)     # TODO: mock up reversed?
+    row = Column(types.SmallInteger, nullable=False)
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'))
     sample = relationship(Sample, backref=backref('boxcells'))
