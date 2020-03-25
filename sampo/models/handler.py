@@ -84,7 +84,7 @@ class DBHandler(rhombus_handler.DBHandler):
 
         raise RuntimeError('ERR: unknown data type for getting Subject')
 
-    def get_sample(self, sam=None):
+    def get_sample(self, sam=None, box=None):
         """get sample by label or all"""
 
         if sam is None:
@@ -95,6 +95,10 @@ class DBHandler(rhombus_handler.DBHandler):
             return [self.get_sample(x) for x in sam]
         if isinstance(sam, str):
             return self.Sample.search(sam, self.session())
+        if box:
+            qResult = self.Sample.query(self.session()).filter(self.Sample.box_id == box).all()
+            if qResult: return qResult
+            return None
 
         raise RuntimeError('ERR: unknown data type for getting Sample')
 

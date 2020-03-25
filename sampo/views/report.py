@@ -19,11 +19,8 @@ class ReportViewer(object):
             fieldset(       # TODO: filter by user only. check if these works
                 literal('<label for="filter">Filter By User:</label>'),
                 input_text(name='filter', label='', placeholder='user name'),
-                literal(
-                    '<select name="sort">'
-                    '   <option value="asc">Ascending'
-                    '   <option value="des">Descending'
-                ),
+                input_select(name='sort', label='',
+                             options=[('asc', 'Ascending'), ('des', 'Descending')]),
             ),
             fieldset(
                 table()[

@@ -93,8 +93,14 @@ class SampleViewer(object):
                         input_select_ek(name='type', label='Sample Type', value='',
                                         parent_ek=dbh.list_ekeys(group='@SAMTYPE')),
                         literal(
-                            '<label for="date">Date Created</label> <input type="date" name="date">'
-                            '<label for="aliquot">Number of Aliquot</label> <input type="number" name="aliquot">'
+                            '<div class ="form-inline row">'
+                                '<label class ="align-self-start pt-2" for ="date">Date Created</label>'
+                                '<div><input type="date" id="date" name="date" style="width:100%"/></div>'                
+                            '</div>'
+                            '<div class ="form-inline row">'
+                                '<label class ="align-self-start pt-2" for ="aliquot">Number of Aliquot</label>'
+                                '<div><input type="number" id="aliquot" name="aliquot" style="width:100%"/></div>'
+                            '</div>'
                         ),
                         input_select_ek(name='source', label='Sample Source', value='',
                                         parent_ek=dbh.list_ekeys(group='@SPECSOURCE')),
@@ -115,19 +121,21 @@ class SampleViewer(object):
         eform.add(
             fieldset(
                 input_text(name='code_number', label='', placeholder='Code Number'),
-                literal(
-                    '<select name=spext>'
-                    '   <option value="both">Both'
-                    '   <option value="specimen">Specimen'
-                    '   <option value="extraction">Extraction'
-                ),
+                input_select(name='spext', label='', placeholder='Spec or Ext',
+                             options=[('both', 'Both'), ('specimen', 'Specimen'), ('extraction', 'Extraction')]),
                 input_select(name='study', label='', placeholder='Study',
                              options=[(s.id, s.study_name) for s in dbh.get_study()]),
                 input_select_ek(name='type', label='', value='',
                                 parent_ek=dbh.list_ekeys(group='@SAMTYPE')),
                 literal(
-                    '<label for="startD">From:</label> <input type="date" name="startD">'
-                    '<label for="endD">Until:</label> <input type="date" name="endD">'
+                    '<div class ="form-inline row">'
+                        '<label class ="align-self-start pt-2" for ="startD">From:</label>'
+                        '<div><input type="date" id="startD" name="startD"/></div>'
+                    '</div>'
+                    '<div class ="form-inline row">'
+                        '<label class ="align-self-start pt-2" for ="endD">Until:</label>'
+                        '<div><input type="date" id="endD" name="endD"/></div>'
+                    '</div>'
                 ),
             ),
             fieldset(custom_submit_bar(('Search', 'search')).set_hide(False).set_offset(2))
@@ -182,7 +190,11 @@ class SampleViewer(object):
                                 td('%s' % samp.label),
                                 td(input_select_ek(name='type', label='', value='',
                                                    parent_ek=dbh.list_ekeys(group='@SAMTYPE'))),
-                                td(literal('<input type="date" name="date">')),
+                                td(literal(
+                                           '<div class ="form-inline row">'
+                                               '<div><input type="date" id="date" name="date"/></div>'
+                                           '</div>'
+                                           )),
                                 td(input_select_ek(name='method', label='', value='',
                                                    parent_ek=dbh.list_ekeys(group='@EXTMETHOD'))),
                                 td(input_select_ek(name='storage', label='', value='',

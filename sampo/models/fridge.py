@@ -42,8 +42,8 @@ class Fridge(Base):
     last_user = relationship(User, backref=backref('fridges'))
 
     @staticmethod
-    def add(dbsession, group, name, type, model, temp, loc, desc, full, shelf,
-            creator=None, last_user=None):
+    def add(dbsession, group, name, type, model, temp, loc, desc, shelf,
+            full=False, creator=None, last_user=None):
         """add a fridge"""
 
         dbh = get_dbhandler()
@@ -80,7 +80,7 @@ class Fridge(Base):
             group, name, type, model, temperature, location, desc, isFull, shelf, creator, last_editor \
                 = item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], \
                   item[8], item[9], item[10]
-            Fridge.add(dbsession, group, name, type, model, temperature, location, desc, isFull, shelf,
+            Fridge.add(dbsession, group, name, type, model, temperature, location, desc, shelf, isFull,
                        creator, last_editor)
 
     def as_dict(self):
