@@ -93,12 +93,12 @@ class SampleViewer(object):
                         input_select_ek(name='type', label='Sample Type', value='',
                                         parent_ek=dbh.list_ekeys(group='@SAMTYPE')),
                         literal(
-                            '<div class ="form-inline row">'
-                                '<label class ="align-self-start pt-2" for ="date">Date Created</label>'
+                            '<div class="form-inline row">'
+                                '<label class="align-self-start pt-2" for="date">Date Created</label>'
                                 '<div><input type="date" id="date" name="date" style="width:100%"/></div>'                
                             '</div>'
-                            '<div class ="form-inline row">'
-                                '<label class ="align-self-start pt-2" for ="aliquot">Number of Aliquot</label>'
+                            '<div class="form-inline row">'
+                                '<label class="align-self-start pt-2" for="aliquot">Number of Aliquot</label>'
                                 '<div><input type="number" id="aliquot" name="aliquot" style="width:100%"/></div>'
                             '</div>'
                         ),
@@ -128,12 +128,12 @@ class SampleViewer(object):
                 input_select_ek(name='type', label='', value='',
                                 parent_ek=dbh.list_ekeys(group='@SAMTYPE')),
                 literal(
-                    '<div class ="form-inline row">'
-                        '<label class ="align-self-start pt-2" for ="startD">From:</label>'
+                    '<div class="form-inline row">'
+                        '<label class="align-self-start pt-2" for="startD">From:</label>'
                         '<div><input type="date" id="startD" name="startD"/></div>'
                     '</div>'
-                    '<div class ="form-inline row">'
-                        '<label class ="align-self-start pt-2" for ="endD">Until:</label>'
+                    '<div class="form-inline row">'
+                        '<label class="align-self-start pt-2" for="endD">Until:</label>'
                         '<div><input type="date" id="endD" name="endD"/></div>'
                     '</div>'
                 ),
@@ -191,7 +191,7 @@ class SampleViewer(object):
                                 td(input_select_ek(name='type', label='', value='',
                                                    parent_ek=dbh.list_ekeys(group='@SAMTYPE'))),
                                 td(literal(
-                                           '<div class ="form-inline row">'
+                                           '<div class="form-inline row">'
                                                '<div><input type="date" id="date" name="date"/></div>'
                                            '</div>'
                                            )),

@@ -222,7 +222,7 @@ class Subject(Base):
             maxNum = sub.subject_number
 
         for inc in range(count):
-            tNum = maxNum + count + 1
+            tNum = maxNum + inc + 1
             Subject.add(dbsession, tNum, study, loc, year, creator)
 
     @staticmethod

@@ -15,6 +15,7 @@ class FridgeViewer(object):
         """get new fridge data from new fridge form"""
 
         retdict = dict()
+        retdict['id'] = int(formd['id'])
         retdict['group'] = int(formd['group'])
         retdict['name'] = formd['name']
         retdict['type'] = int(formd['type'])
@@ -32,6 +33,7 @@ class FridgeViewer(object):
         retlist = list()
         retdict = dict()
         for formd in forml:
+            retdict['fridge'] = formd['fridge']
             retdict['shelf'] = formd['shelf']
             retdict['rack'] = formd['rack']
             retdict['row'] = formd['row']
@@ -70,37 +72,41 @@ class FridgeViewer(object):
         )
         return content
 
-    def new_fridge_form(self):
+    def new_fridge_form(self, fridge, create=False):
         """HTML form for new fridge"""
 
         dbh = self.dbh
         content = div()
         content.add(
             fieldset(
-                h2()['New Fridge']
+                h2()['New Fridge'] if create else h2()['Edit Fridge']
             ),
             fieldset(
-                input_select(name='group', label='Group',
+                input_hidden(name='id', value=fridge.id) if not create else None,
+                input_select(name='group', label='Group', static=create, value=fridge.group_name,
                              options=[(g.id, g.name) for g in dbh.get_group()]),
-                input_text(name='name', label='Name'),
-                input_select_ek(name='type', label='Type', value='',
-                           parent_ek=dbh.list_ekeys(group='@FRIDGETYPE')),
-                input_text(name='model', label='Model (op)'),
-                input_text(name='name', label='Name'),
+                input_text(name='name', label='Name', static=create, value=fridge.fridge_name),
+                input_select_ek(name='type', label='Type', value=dbh.EK.getkey(fridge.fridge_type_id),
+                                static=create, parent_ek=dbh.list_ekeys(group='@FRIDGETYPE')),
+                input_text(name='model', label='Model (op)', static=create, value=fridge.fridge_model),
                 literal(
-                    '<label for="temp">Temperature (C)</label>'
-                    '<input type="number" name="temp">'
+                    '<div class="form-inline row">'
+                        '<label class="align-self-start pt-2" for="temp">Temperature (C)</label>'
+                        '<div><input type="number" id="temp" name="temp"/></div>'
+                    '</div>'
                 ),
-                input_select_ek(name='loc', label='Location', value='',
+                input_select_ek(name='loc', label='Location', value=dbh.EK.getkey(fridge.fridge_location_id),
                             parent_ek=dbh.list_ekeys(group='@FRIDGELOC')),
-                input_text(name='desc', label='Desc (op)'),
+                input_text(name='desc', label='Desc (op)', value=fridge.fridge_desc),
                 literal(
-                    '<label for="shelf">Number of Shelf</label>'
-                    '<input type="number" name="shelf">'
-                ),
+                    '<div class="form-inline row">'
+                        '<label class="align-self-start pt-2" for="shelf">Number of Shelf</label>'
+                        '<div><input type="number" id="shelf" name="shelf"/></div>'
+                    '</div>'
+                ) if create else input_text(name='shelf', label='Number of Shelf', value=fridge.shelf),
             ),
             fieldset(
-                custom_submit_bar(('Add Fridge', 'save'))
+                custom_submit_bar(('Save', 'save'))
             )
         )
         return content
@@ -119,14 +125,29 @@ class FridgeViewer(object):
                     div()[
                         p()['%s' % shelf],
                         input_hidden(name='fridge', value=req.fridge),
+                        input_hidden(name='shelf', value=shelf),
                         literal(
-                            '<label for="number">Number of Rack</label> '
-                            '<input type="number" name="number"><br>'
+                            '<div class="form-inline row">'
+                                '<label class="align-self-start pt-2" for="rack">Number of Racks</label>'
+                                '<div><input type="number" id="rack" name="rack"/></div>'
+                            '</div>'
+                            '<div class="form-inline row">'
+                                '<label class="align-self-start pt-2" for="row">Rack Depth (Downward)</label>'
+                                '<div><input type="number" id="row" name="row"/></div>'
+                            '</div>'
+                            '<div class="form-inline row">'
+                                '<label class="align-self-start pt-2" for="col">Rack Depth (Rearward)</label>'
+                                '<div><input type="number" id="col" name="col"/></div>'
+                            '</div>'
                         ),
                     ]for shelf in req.shelf
                 ])
+            ),
+            fieldset(
+                custom_submit_bar(('Add Fridge', 'save'))
             )
         )
+        return content
 
     @m_roles(PUBLIC)
     def all_fridge(self):
@@ -156,7 +177,7 @@ class FridgeViewer(object):
                                   {}, request=req
                                   )
 
-    @m_roles(PUBLIC)            # TODO: not yet, stuck at the structure
+    @m_roles(PUBLIC)            # TODO: not yet, stuck at the structure, make a table view with links
     def show_fridge(self):
         """show fridge view page"""
 
@@ -201,7 +222,8 @@ class FridgeViewer(object):
 
         dbh = self.dbh
         req = self.request
-        content = self.new_fridge_form()
+        fridge = dbh.Fridge()
+        content = self.new_fridge_form(fridge=fridge, create=True)
 
         if req.POST:
             fridge = self.parse_new_fridge(req.POST)
@@ -211,6 +233,52 @@ class FridgeViewer(object):
             dbh.session().flush()
             return HTTPFound(location='/',      # TODO: new fridge rack page
                              shelf=fridge['shelf'], fridge=tFrd.id)
+
+        return render_to_response("sampo:templates/generics_page.mako",  # TODO: simple template
+                                  {
+                                      'html': content,
+                                  }, request=req
+                                  )
+
+    @m_roles(PUBLIC)  # TODO: state role
+    def new_racks(self):
+        """show new fridge racks form if GET and process if POST"""
+
+        dbh = self.dbh
+        req = self.request
+        content = self.new_fridge_racks_form()
+
+        if req.POST:
+            shelves = self.parse_racks(req.POST)
+            for shelf in shelves:
+                for rack in range(shelf['rack']):
+                    dbh.Rack.add(dbsession=dbh.session(), fridge=shelf['fridge'], shelf=shelf['shelf'],
+                                 pos=rack+1, row=shelf['row'], col=shelf['col'])
+
+            dbh.session().flush()
+            return HTTPFound(location='/')  # TODO: fridge menu
+
+        return render_to_response("sampo:templates/generics_page.mako",  # TODO: simple template
+                                  {
+                                      'html': content,
+                                  }, request=req
+                                  )
+
+    @m_roles(PUBLIC)  # TODO: state role
+    def edit_fridge(self):
+        """show edit fridge form if GET and process if POST"""
+
+        dbh = self.dbh
+        req = self.request
+        fridge = req.fridge
+        content = self.new_fridge_form(fridge=fridge, create=False)
+
+        if req.POST:
+            fridge = self.parse_new_fridge(req.POST)
+            tFrd = dbh.get_fridge(frid=fridge['id'])
+            tFrd.edit(dbsession=dbh.session(), temp=fridge['temp'], loc=fridge['loc'], desc=fridge['desc'])
+            dbh.session().flush()
+            return HTTPFound(location='/')  # TODO: fridge menu
 
         return render_to_response("sampo:templates/generics_page.mako",  # TODO: simple template
                                   {

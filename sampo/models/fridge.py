@@ -180,7 +180,7 @@ class Rack(Base):
     # TODO: check status at starting and after moving
 
     @staticmethod
-    def add(dbsession, fridge, shelf, pos, row, col, full):
+    def add(dbsession, fridge, shelf, pos, row, col, full=None):
         """add a rack"""
 
         dbh = get_dbhandler()

@@ -55,8 +55,8 @@ class StudyViewer(object):
                 input_select(name='location_id', label='Location',                                  # no
                              options=[(l.id, l.name) for l in dbh.get_location()]),
                 literal(
-                    '<div class ="form-inline row">'
-                        '<label class ="align-self-start pt-2" for ="study_year">Year</label>'
+                    '<div class="form-inline row">'
+                        '<label class="align-self-start pt-2" for="study_year">Year</label>'
                         '<div><input type="number" id="study_number" name="study_number" min="1899" max="2999" style="width:100%"/></div>'                
                     '</div>'
                 ),                                                                                  # no
@@ -86,7 +86,7 @@ class StudyViewer(object):
                                 td('%s' % subject.subject_number,),
                                 td(
                                    literal(
-                                       '<div class ="form-inline row">'
+                                       '<div class="form-inline row">'
                                        '<div><input type="number" id="amount" name="amount" style="width:100%"/></div>'
                                        '</div>'
                                    ),

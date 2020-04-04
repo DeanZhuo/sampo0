@@ -17,8 +17,7 @@ class ReportViewer(object):
         rep_table = div()
         rep_table.add(
             fieldset(       # TODO: filter by user only. check if these works
-                literal('<label for="filter">Filter By User:</label>'),
-                input_text(name='filter', label='', placeholder='user name'),
+                input_text(name='filter', label='Filter By User:', placeholder='user name'),
                 input_select(name='sort', label='',
                              options=[('asc', 'Ascending'), ('des', 'Descending')]),
             ),
@@ -50,24 +49,13 @@ class ReportViewer(object):
         rep_table = div()
         rep_table.add(
             fieldset(  # TODO: filter by group, study, location only. check if these works
-                literal(
-                    '<label for="filter">Filter By:</label>'
-                    '<select name="filter">'
-                    '   <option value="group">Group'
-                    '   <option value="study">Study'
-                    '   <option value="location">Location'
-                ),
+                input_select(name='filterby', label='Filter By:',
+                             options=[('group', 'Group'), ('study', 'Study'), ('location', 'Location')]),
                 input_text(name='filter', label=''),
-                literal(
-                    '<label for="sort">Sort By:</label>'
-                    '<select name="sort_by">'
-                    '   <option value="group">Group'
-                    '   <option value="study">Study'
-                    '   <option value="location">Location'
-                    '<select name="sort">'
-                    '   <option value="asc">Ascending'
-                    '   <option value="des">Descending'
-                ),
+                input_select(name='sortby', label='Sort By:',
+                             options=[('group', 'Group'), ('study', 'Study'), ('location', 'Location')]),
+                input_select(name='sort', label='',
+                             options=[('asc', 'Ascending'), ('des', 'Descending')]),
             ),
             fieldset(
                 table()[
