@@ -387,7 +387,7 @@ class BoxCell(Base):
     row = Column(types.SmallInteger, nullable=False)
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'))
-    sample = relationship(Samp, backref=backref('boxcells'))
+    sample = relationship(Sample, backref=backref('boxcells'))
 
     box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False)
     box = relationship(Rack, backref=backref('boxcells'))
