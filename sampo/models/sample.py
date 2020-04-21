@@ -1,7 +1,6 @@
-from sampo.models.fridge import Box
-from sqlalchemy import and_
-
-from .study import *
+from . import *
+from .study import Study, Subject, checkYear
+from .fridge import Box
 
 
 class Sample(Base):
@@ -14,7 +13,7 @@ class Sample(Base):
 
     id = Column(types.Integer, Sequence('spec_seq_id', optional=True), primary_key=True)
     uuid = Column(types.String, nullable=False)
-    box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False, server_default=0)
+    box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False, server_default='0')
     spext = Column(types.String(10))
 
     study_id = Column(types.Integer, ForeignKey('studies.id'), nullable=False)
@@ -296,8 +295,8 @@ class Specimen(Sample):
     the one taken from subjects
     """
 
-    aliquot = Column(types.SmallInteger, nullable=False, server_default=1)
-    aliquot_total = Column(types.SmallInteger, nullable=False, server_default=1)
+    aliquot = Column(types.SmallInteger, nullable=False, server_default='1')
+    aliquot_total = Column(types.SmallInteger, nullable=False, server_default='1')
 
     spec_source_id = Column(types.Integer, ForeignKey('eks.id'), nullable=False)
     spec_source = EK.proxy('spec_source_id', '@SPECSOURCE')

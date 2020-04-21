@@ -32,5 +32,9 @@ sampo/templates/base.mako
 sampo/templates/generic_page.mako
 sampo/templates/plainbase.mako
 sampo/views/__init__.py
+sampo/views/fridge.py
 sampo/views/home.py
 sampo/views/post.py
+sampo/views/report.py
+sampo/views/sample.py
+sampo/views/study.py

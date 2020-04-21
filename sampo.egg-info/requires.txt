@@ -1,7 +1,8 @@
-SQLAlchemy
 pyramid
 pyramid_chameleon
 pyramid_debugtoolbar
 pyramid_tm
-rhombus
+SQLAlchemy
 transaction
+rhombus
+PyYAML

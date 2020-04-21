@@ -1,7 +1,4 @@
-from sqlalchemy import func
-
-from .sample import *
-from datetime import date
+from . import *
 
 
 class TakeReturn(Base):
@@ -22,7 +19,7 @@ class TakeReturn(Base):
     user = relationship(User, backref=backref('takereturn'))
 
     take_date = Column(types.Date, nullable=False)  # TODO: add stamp
-    returned = Column(types.Boolean, nullable=False, server_default=False)
+    returned = Column(types.Boolean, nullable=False, server_default='False')
 
     @staticmethod
     def add(dbsession, sample, user, date, ret):
@@ -99,13 +96,13 @@ class TakeReturn(Base):
     def search(sample):
         """search by sample"""
 
+        dbh = get_dbhandler()
         if isinstance(sample, int) is not True:
-            dbh = get_dbhandler()
             tSam = dbh.get_sample(sam=sample)
         else:
             tSam = sample
 
-        q = TakeReturn.query(dbsession).filter(TakeReturn.sample_id == tSam,
+        q = TakeReturn.query(dbh.session()).filter(TakeReturn.sample_id == tSam,
                                                TakeReturn.returned == False).first()
         if q: return q
         return None

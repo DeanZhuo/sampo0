@@ -1,7 +1,5 @@
-from .sample import *
-
-# note: shelf = level
-
+from . import *
+from .sample import Sample
 
 class Fridge(Base):
     """
@@ -29,7 +27,7 @@ class Fridge(Base):
     fridge_location = EK.proxy('fridge_loc_id', '@FRIDGELOC')
 
     fridge_desc = Column(types.String(128))
-    fridge_isFull = Column(types.Boolean, nullable=False, server_default=False)
+    fridge_isFull = Column(types.Boolean, nullable=False, server_default="False")
     # TODO: check status at starting and after moving
 
     shelf = Column(types.SmallInteger, nullable=False)
@@ -176,7 +174,7 @@ class Rack(Base):
     rack_post = Column(types.SmallInteger, nullable=False)
     num_row = Column(types.SmallInteger, nullable=False)
     num_column = Column(types.SmallInteger, nullable=False)
-    rack_isFull = Column(types.Boolean, nullable=False, server_default=False)
+    rack_isFull = Column(types.Boolean, nullable=False, server_default="False")
     # TODO: check status at starting and after moving
 
     @staticmethod
@@ -284,7 +282,7 @@ class Box(Base):
 
     row = Column(types.SmallInteger, nullable=False)
     column = Column(types.SmallInteger, nullable=False)
-    box_isFull = Column(types.Boolean, nullable=False, server_default=False)  # normal always False
+    box_isFull = Column(types.Boolean, nullable=False, server_default="False")  # normal always False
     # TODO: check status at starting and after moving
 
     @staticmethod
@@ -389,7 +387,7 @@ class BoxCell(Base):
     row = Column(types.SmallInteger, nullable=False)
 
     sample_id = Column(types.Integer, ForeignKey('samples.id'))
-    sample = relationship(Sample, backref=backref('boxcells'))
+    sample = relationship(Samp, backref=backref('boxcells'))
 
     box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False)
     box = relationship(Rack, backref=backref('boxcells'))

@@ -3,7 +3,7 @@ from rhombus.lib.utils import cerr, cout
 
 from .setup import setup
 
-from sampo.models import post, study, sample, fridge, transaction
+from . import post, study, sample, fridge, transaction
 
 
 class DBHandler(rhombus_handler.DBHandler):
