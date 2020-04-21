@@ -1,5 +1,5 @@
 from . import *
-from .sample import Sample
+
 
 class Fridge(Base):
     """
@@ -291,15 +291,15 @@ class Box(Base):
 
         dbh = get_dbhandler()
         tUuid = UUID.new()
-        if type.lower() == 'grid' or type == 1:
-            tType = 1
-        else:
-            tType = 0
+        # if type.lower() == 'grid' or type == 1:
+        #     tType = 1
+        # else:
+        #     tType = 0
         tRack = dbh.get_rack(rck=rack)
-        box = Box(uuid=tUuid, box_name=name, box_type=tType, rack_id=tRack, row=row, column=col,
+        box = Box(uuid=tUuid, box_name=name, box_type=0, rack_id=tRack, row=row, column=col,
                   box_isFull=full)
-        if tType == 1:
-            BoxCell.addBatch(dbsession,box)
+        # if tType == 1:
+        #     BoxCell.addBatch(dbsession,box)
         dbsession.add(box)
 
     @staticmethod
@@ -374,98 +374,98 @@ class Box(Base):
         return True
 
 
-class BoxCell(Base):
-    """
-    class for cell object
-    imagine a spreadsheet is inside a grid type box
-    """
-
-    __tablename__ = 'box_cells'
-
-    id = Column(types.Integer, Sequence('boxcell_seq_id', optional=True), primary_key=True)
-    column = Column(types.String(1), nullable=False)     # TODO: mock up reversed?
-    row = Column(types.SmallInteger, nullable=False)
-
-    sample_id = Column(types.Integer, ForeignKey('samples.id'))
-    sample = relationship(Sample, backref=backref('boxcells'))
-
-    box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False)
-    box = relationship(Rack, backref=backref('boxcells'))
-
-    cell_status = Column(types.String, nullable=False, server_default='E')
-    # 'E'mpty, 'A'vailable, 'N'ot available
-
-    @staticmethod
-    def add(dbsession, col, row, sample, box, stat):
-        """add a cell"""
-
-        dbh = get_dbhandler()
-        tSam = dbh.get_sample(sam=sample)
-        tBox = dbh.get_box(bx=box)
-        cell = BoxCell(column=col, row=row, sample_id=tSam, box_id=tBox, cell_status=stat)
-        dbsession.add(cell)
-
-    @staticmethod
-    def addBatch(dbsession, box):
-        """add cell for box"""
-
-        for col in range(1, 9):
-            for row in range(1, 9):
-                BoxCell.add(dbsession, col, row, None, box, False)
-
-    @staticmethod
-    def bulk_insert(itemlist, dbsession):
-        """
-        bulk insert box
-        itemlist = [ (col, row, sample, box, status) ]
-        """
-
-        for item in itemlist:
-            col, row, sample, box, status = item[0], item[1], item[2], item[3], item[4]
-            BoxCell.add(dbsession, col, row, sample, box, status)
-
-    def as_dict(self):
-        """return as python dictionary"""
-
-        return dict(col=self.column, row=self.row, sample=self.sample_id,
-                    box=self.box_id, status=self.cell_status)
-
-    @staticmethod
-    def dump(out, query=None):
-        """dump to yaml"""
-        if query is None:
-            query = BoxCell.query()
-        yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
-
-    def update(self, obj):
-        """update from dictionary"""
-
-        if isinstance(obj, dict):
-            if 'column' in obj:
-                self.column = obj['column']
-            if 'row' in obj:
-                self.row = obj['row']
-            if 'sample_id' in obj:
-                self.sample_id = obj['sample_id']
-            if 'box_id' in obj:
-                self.box_id = obj['box_id']
-            if 'cell_status' in obj:
-                self.cell_status = obj['cell_status']
-
-            return self
-
-        raise NotImplementedError('ERR: updating object uses dictionary object')
-
-    @staticmethod
-    def search(sample, dbsession):
-        """search by sample"""
-
-        if isinstance(sample, int) is not True:
-            dbh = get_dbhandler()
-            tSam = dbh.get_sample(sam=sample)
-        else:
-            tSam = sample
-
-        q = BoxCell.query(dbsession).filter(BoxCell.sample_id == tSam).first()
-        if q: return q
-        return None
+# class BoxCell(Base):
+#     """
+#     class for cell object
+#     imagine a spreadsheet is inside a grid type box
+#     """
+#
+#     __tablename__ = 'box_cells'
+#
+#     id = Column(types.Integer, Sequence('boxcell_seq_id', optional=True), primary_key=True)
+#     column = Column(types.String(1), nullable=False)     # TODO: mock up reversed?
+#     row = Column(types.SmallInteger, nullable=False)
+#
+#     sample_id = Column(types.Integer, ForeignKey('samples.id'))
+#     sample = relationship(Sample, backref=backref('boxcells'))
+#
+#     box_id = Column(types.Integer, ForeignKey('boxes.id'), nullable=False)
+#     box = relationship(Rack, backref=backref('boxcells'))
+#
+#     cell_status = Column(types.String, nullable=False, server_default='E')
+#     # 'E'mpty, 'A'vailable, 'N'ot available
+#
+#     @staticmethod
+#     def add(dbsession, col, row, sample, box, stat):
+#         """add a cell"""
+#
+#         dbh = get_dbhandler()
+#         tSam = dbh.get_sample(sam=sample)
+#         tBox = dbh.get_box(bx=box)
+#         cell = BoxCell(column=col, row=row, sample_id=tSam, box_id=tBox, cell_status=stat)
+#         dbsession.add(cell)
+#
+#     @staticmethod
+#     def addBatch(dbsession, box):
+#         """add cell for box"""
+#
+#         for col in range(1, 9):
+#             for row in range(1, 9):
+#                 BoxCell.add(dbsession, col, row, None, box, False)
+#
+#     @staticmethod
+#     def bulk_insert(itemlist, dbsession):
+#         """
+#         bulk insert box
+#         itemlist = [ (col, row, sample, box, status) ]
+#         """
+#
+#         for item in itemlist:
+#             col, row, sample, box, status = item[0], item[1], item[2], item[3], item[4]
+#             BoxCell.add(dbsession, col, row, sample, box, status)
+#
+#     def as_dict(self):
+#         """return as python dictionary"""
+#
+#         return dict(col=self.column, row=self.row, sample=self.sample_id,
+#                     box=self.box_id, status=self.cell_status)
+#
+#     @staticmethod
+#     def dump(out, query=None):
+#         """dump to yaml"""
+#         if query is None:
+#             query = BoxCell.query()
+#         yaml.safe_dump((x.as_dict() for x in query), out, default_flow_style=False)
+#
+#     def update(self, obj):
+#         """update from dictionary"""
+#
+#         if isinstance(obj, dict):
+#             if 'column' in obj:
+#                 self.column = obj['column']
+#             if 'row' in obj:
+#                 self.row = obj['row']
+#             if 'sample_id' in obj:
+#                 self.sample_id = obj['sample_id']
+#             if 'box_id' in obj:
+#                 self.box_id = obj['box_id']
+#             if 'cell_status' in obj:
+#                 self.cell_status = obj['cell_status']
+#
+#             return self
+#
+#         raise NotImplementedError('ERR: updating object uses dictionary object')
+#
+#     @staticmethod
+#     def search(sample, dbsession):
+#         """search by sample"""
+#
+#         if isinstance(sample, int) is not True:
+#             dbh = get_dbhandler()
+#             tSam = dbh.get_sample(sam=sample)
+#         else:
+#             tSam = sample
+#
+#         q = BoxCell.query(dbsession).filter(BoxCell.sample_id == tSam).first()
+#         if q: return q
+#         return None
